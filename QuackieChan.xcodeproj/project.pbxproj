@@ -16,6 +16,7 @@
 		1A51547C1E88203B7B32C4BF /* Ears.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE6D4577E609DEDC53C895E /* Ears.swift */; };
 		1C19BA353FB01673AA4690AA /* Sounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA88BE5863AB72D62FE9CE15 /* Sounds.swift */; };
 		1EF23F0E1E770F1140E5D584 /* Eyes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847D2D8FE8922EB5771EF0B6 /* Eyes.swift */; };
+		2467526E761F2B3B19D09BDE /* Knowing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A2C863E2BAA531152B15580 /* Knowing.swift */; };
 		2968232C51B55A371124BABA /* Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8668B83C0B69C852B553F9 /* Music.swift */; };
 		2B48EC04807A6A6EDD82D32F /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = A39C4F8A23B2E1F2E75D1950 /* MLXVLM */; };
 		2D4413E6EED742B8172D0B43 /* QuackieChanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55A7DEEB4BBE3C3672AB2D0D /* QuackieChanTests.swift */; };
@@ -81,6 +82,7 @@
 		850AD7F3331F267C6E663331 /* Goals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Goals.swift; sourceTree = "<group>"; };
 		872FA19071AA8B11CC1D9B18 /* QuackieChanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuackieChanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8970DD3D483D47442D4668D4 /* AppleBrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleBrain.swift; sourceTree = "<group>"; };
+		8A2C863E2BAA531152B15580 /* Knowing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Knowing.swift; sourceTree = "<group>"; };
 		908BB4E26AA2714ECAED4D15 /* Talk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Talk.swift; sourceTree = "<group>"; };
 		957B51542BB4B3B33318331D /* QuackieChan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuackieChan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BBDE540FDC9D4901BE9679B /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
@@ -193,6 +195,7 @@
 				8970DD3D483D47442D4668D4 /* AppleBrain.swift */,
 				D6CF952D6988C195171DB4C1 /* Director.swift */,
 				850AD7F3331F267C6E663331 /* Goals.swift */,
+				8A2C863E2BAA531152B15580 /* Knowing.swift */,
 				4904585AE07B63265A256CEE /* Lines.swift */,
 				E63893D2958BF86D35E6DDEB /* LocalBrain.swift */,
 				1AB6FC7725D8BC235B1C41C9 /* Minds.swift */,
@@ -360,6 +363,7 @@
 				889E92F9DB7AFA63DB3DEB89 /* Fonts.swift in Sources */,
 				5D64C8D89797EDE2698CBB56 /* Goals.swift in Sources */,
 				9543748C04460CB918F958AD /* HotKeys.swift in Sources */,
+				2467526E761F2B3B19D09BDE /* Knowing.swift in Sources */,
 				0F6B3FF814D4904E6C1BCC0B /* Lines.swift in Sources */,
 				1950F42AE758E18A20AB53EA /* LocalBrain.swift in Sources */,
 				5E8825B2D9A8DCDD5E0F8E33 /* Log.swift in Sources */,

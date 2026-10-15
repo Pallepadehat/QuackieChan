@@ -730,6 +730,23 @@ private struct TalkPage: View {
                 }
             }
             Section {
+                if settings.prefs.memories.isEmpty {
+                    Text("Nothing yet. Say “remember that…” or “my name is…” when you talk to it.").foregroundStyle(.secondary)
+                }
+                ForEach(settings.prefs.memories, id: \.self) { memory in
+                    LabeledContent(memory) {
+                        Button(role: .destructive) {
+                            settings.prefs.memories.removeAll { $0 == memory }
+                        } label: { Image(systemName: "minus.circle.fill") }
+                            .buttonStyle(.borderless)
+                    }
+                }
+            } header: {
+                Text("Things it remembers")
+            } footer: {
+                Text("Kept on your Mac and given to its brain in every conversation. “Forget everything” clears them.")
+            }
+            Section {
                 LabeledContent("Talking brain") {
                     Text(Minds.shared.canChat ? "Ready" : "None yet. Pick one under Brain.")
                         .foregroundStyle(Minds.shared.canChat ? Color.green : .orange)

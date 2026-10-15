@@ -108,11 +108,33 @@ struct CommandTests {
         #expect(Paws.parse("search for duck facts") == [.search("duck facts")])
         #expect(Paws.parse("remind me in 10 minutes to stretch") == [.remind(minutes: 10, about: "stretch")])
         #expect(Paws.parse("press cmd+t") == [.press("cmd+t")])
+        #expect(Paws.parse("Can you pause the music for me please?") == [.pause])
+        #expect(Paws.parse("next song please") == [.next])
     }
 
     @Test func leavesConversationToTheBrain() {
         #expect(Paws.parse("how are you feeling today?") == nil)
         #expect(Paws.parse("tell me a joke") == nil)
+    }
+}
+
+@MainActor
+struct KnowingTests {
+    @Test func knowsItsOwnNameAndTheDay() {
+        let name = Settings.shared.prefs.duckName
+        #expect(Knowing.reply(to: "What's your name?", settings: .shared)?.contains(name) == true)
+        #expect(Knowing.reply(to: "Who are you", settings: .shared)?.contains(name) == true)
+        #expect(Knowing.reply(to: "what day is it?", settings: .shared) != nil)
+        #expect(Knowing.reply(to: "tell me a joke", settings: .shared) == nil)
+    }
+
+    @Test func theFactsSayWhoIsWho() {
+        var prefs = Prefs()
+        prefs.duckName = "Sir Waddles"
+        prefs.userName = "Patrick"
+        let facts = Minds.facts(prefs)
+        #expect(facts.contains("Your name: Sir Waddles."))
+        #expect(facts.contains("The user's name: Patrick."))
     }
 }
 

@@ -85,6 +85,11 @@ final class Director {
             feelings.feel(.insulted)
         }
 
+        // Things it knows for certain, and things you ask it to remember, need no AI.
+        if let reply = Knowing.reply(to: said, settings: settings) {
+            say(reply)
+            return
+        }
         // Plain commands are done straight away, no AI needed.
         if let deeds = Paws.parse(said) {
             perform(deeds)

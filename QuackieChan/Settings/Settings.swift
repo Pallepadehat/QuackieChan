@@ -36,6 +36,8 @@ struct Prefs: Codable, Equatable {
     var hasRealQuack = false
     /// ⌃⌥Q opens the talk box and listens.
     var talkShortcut = true
+    /// Things you asked the duck to remember, for every conversation.
+    var memories: [String] = []
     /// Double-clicking the duck opens the talk box. Off by default: it makes single clicks wait a moment.
     var doubleClickToTalk = false
     /// Let the duck do things on the Mac when you ask: open, quit and hide apps, music, volume, tabs, shortcuts.

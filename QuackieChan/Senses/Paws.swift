@@ -52,6 +52,9 @@ enum Paws {
         for polite in ["please ", "can you ", "could you ", "hey duck ", "duck, ", "quackie, ", "would you "] {
             if text.hasPrefix(polite) { text.removeFirst(polite.count) }
         }
+        for polite in [" for me please", " please", " for me", " right now", " now"] {
+            if text.hasSuffix(polite) { text.removeLast(polite.count) }
+        }
         func after(_ prefixes: [String]) -> String? {
             for prefix in prefixes where text.hasPrefix(prefix + " ") {
                 let rest = text.dropFirst(prefix.count + 1).trimmingCharacters(in: .whitespaces)
@@ -61,8 +64,10 @@ enum Paws {
         }
 
         switch text {
-        case "play", "resume", "play music", "afspil", "spil musik": return [.play(nil)]
-        case "pause", "stop the music", "pause music", "stop music", "shut up", "stop", "sluk musikken": return [.pause]
+        case "play", "resume", "play music", "play the music", "play some music", "resume the music", "afspil", "spil musik":
+            return [.play(nil)]
+        case "pause", "pause the music", "pause music", "stop the music", "stop music", "shut up", "stop", "sluk musikken":
+            return [.pause]
         case "next", "next song", "skip", "skip song", "skip this", "næste", "næste sang": return [.next]
         case "previous", "previous song", "go back a song", "last song", "forrige", "forrige sang": return [.previous]
         case "louder", "volume up", "turn it up", "skru op": return [.louder]

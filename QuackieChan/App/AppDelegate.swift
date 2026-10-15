@@ -43,6 +43,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if self.window.talk.isOpen { self.window.talk.close() } else { self.talk(listening: true) }
         }
 
+        // For tuning the brain: QUACKIE_ASK="what's your name?" prints the duck's answer and quits.
+        if let question = ProcessInfo.processInfo.environment["QUACKIE_ASK"] {
+            Task {
+                let started = Date()
+                let line: String
+                if let known = Knowing.reply(to: question, settings: Settings.shared) {
+                    line = "(knew it) " + known
+                } else {
+                    do {
+                        let answer = try await Minds.shared.answer(question, context: nil)
+                        line = "\(answer?.say ?? "(no brain)") \(answer?.deeds ?? [])"
+                    } catch {
+                        line = "(error) \(error)"
+                    }
+                }
+                print("[\(String(format: "%.1f", Date().timeIntervalSince(started)))s] \(line)")
+                exit(0)
+            }
+            return
+        }
         if let demo = ProcessInfo.processInfo.environment["QUACKIE_DEMO"] {
             Task { [director] in
                 try? await Task.sleep(for: .seconds(3))

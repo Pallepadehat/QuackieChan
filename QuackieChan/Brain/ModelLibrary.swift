@@ -85,7 +85,7 @@ final class ModelLibrary {
 
     func refresh() {
         for model in BrainModel.all where tasks[model.id] == nil {
-            if FileManager.default.fileExists(atPath: Self.readyMarker(for: model).path) {
+            if FileManager.default.fileExists(atPath: Self.readyMarker(for: model).path), Self.isComplete(model) {
                 statuses[model.id] = .installed
             } else if case .failed = status(of: model) {
                 continue
@@ -104,6 +104,9 @@ final class ModelLibrary {
                     Task { @MainActor in self?.report(model, fraction) }
                 }
                 try Task.checkCancellation()
+                guard Self.isComplete(model) else {
+                    throw CocoaError(.fileReadCorruptFile, userInfo: [NSLocalizedDescriptionKey: "Some of the model's files are missing."])
+                }
                 FileManager.default.createFile(atPath: Self.readyMarker(for: model).path, contents: Data())
                 self?.finish(model, .installed)
                 done()
@@ -137,7 +140,7 @@ final class ModelLibrary {
 
     /// Downloads the repo's weights, configs and tokenizer, then keeps a plain copy in our own folder.
     nonisolated private static func fetch(_ model: BrainModel, progress: @escaping @Sendable (Double) -> Void) async throws {
-        let cache = root.appendingPathComponent(".hub", isDirectory: true)
+        let cache = hubCache(for: model)
         try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
         let hub = HubClient(cache: HubCache(cacheDirectory: cache))
         let snapshot = try await hub.downloadSnapshot(
@@ -154,9 +157,23 @@ final class ModelLibrary {
         try? FileManager.default.removeItem(at: cache)
     }
 
+    /// Each download gets its own cache, so deleting or cancelling one model never touches another's download.
+    nonisolated private static func hubCache(for model: BrainModel) -> URL {
+        root.appendingPathComponent(".hub-" + model.repo.replacingOccurrences(of: "/", with: "--"), isDirectory: true)
+    }
+
+    /// Whether a model's folder has what it needs to load: its config, a tokenizer and its weights.
+    nonisolated static func isComplete(_ model: BrainModel) -> Bool {
+        let folder = folder(for: model)
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return files.contains("config.json")
+            && files.contains { $0 == "tokenizer.json" || $0 == "tokenizer.model" || $0 == "tokenizer_config.json" }
+            && files.contains { $0.hasSuffix(".safetensors") }
+    }
+
     nonisolated private static func removeFiles(of model: BrainModel) {
         try? FileManager.default.removeItem(at: folder(for: model))
-        try? FileManager.default.removeItem(at: root.appendingPathComponent(".hub", isDirectory: true))
+        try? FileManager.default.removeItem(at: hubCache(for: model))
     }
 
     private static func describe(_ error: Error) -> String {
