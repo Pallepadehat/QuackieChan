@@ -82,7 +82,7 @@ final class Minds {
         }
         prompt += "User: \(said)\n\(prefs.duckName):"
         let reply = try await write(mouth, instructions: Self.chatInstructions(prefs, mood: Feelings.shared.mood),
-                                    prompt: prompt, image: nil, maxTokens: 160)
+                                    prompt: prompt, image: nil, maxTokens: 200)
         let answer = Self.parseAnswer(reply)
         history.append((said, answer.say))
         if history.count > 12 { history.removeFirst() }
@@ -141,16 +141,21 @@ final class Minds {
         Keep replies short (1-2 sentences), funny and in character. You're a duck: you love bread, ponds and music.
         \(who)'s goals: \(goals.isEmpty ? "none yet" : goals.joined(separator: "; ")).
 
-        You can do things on their Mac when they ask. Add them to "do":
-        open (app or website), quit (app), hide (app), focus (app), play (optional song), pause, next, previous,
-        volume (0-100), louder, quieter, mute, search (query), closeTab, newTab, reload, closeWindow, minimize,
-        fullscreen, press (shortcut like "cmd+t"), type (text), darkMode (on/off), remind (minutes and about),
-        dance, nap.
-        Only do things they asked for. Never quit or close things they didn't mention.
+        Answer in plain text: one or two short sentences, at most 30 words. No JSON, no lists, no emoji spam.
 
-        Reply with JSON only, like:
-        {"say": "On it. Bye bye, Spotify.", "do": [{"action": "quit", "target": "Spotify"}]}
-        {"say": "Bread. Always bread.", "do": []}
+        You can also do things on their Mac, but only when they ask. Then add one line per action at the very end,
+        starting with "DO:", using these commands:
+        DO: open Safari | DO: open github.com | DO: quit Spotify | DO: hide Slack | DO: switch to Notes
+        DO: play | DO: play Daft Punk | DO: pause | DO: next song | DO: previous song
+        DO: volume 30 | DO: louder | DO: quieter | DO: mute | DO: search for duck facts
+        DO: close tab | DO: new tab | DO: reload | DO: close window | DO: minimize | DO: fullscreen
+        DO: press cmd+t | DO: type hello | DO: dark mode | DO: light mode
+        DO: remind me in 10 minutes to stretch | DO: dance | DO: nap
+        Never do things they didn't ask for.
+
+        Example:
+        Bye bye, Spotify. It had a good run.
+        DO: quit Spotify
         """
     }
 
@@ -174,21 +179,66 @@ final class Minds {
         if let object = json(in: reply),
            let line = (object["line"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !line.isEmpty {
             let mood = Take.Mood(rawValue: (object["mood"] as? String ?? "").lowercased()) ?? .tease
-            return Take(mood: mood, line: String(line.prefix(140)))
+            return Take(mood: mood, line: shorten(line, to: 140))
         }
         let plain = reply.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"`")))
-        guard !plain.isEmpty, plain.count < 160, !plain.contains("{") else { return nil }
-        return Take(mood: .tease, line: plain)
+        if plain.contains("{"), let said = quoted("line", in: plain) {
+            return Take(mood: .tease, line: shorten(said, to: 140))
+        }
+        guard !plain.isEmpty, !plain.contains("{") else { return nil }
+        return Take(mood: .tease, line: shorten(plain, to: 140))
     }
 
+    /// Reads a chat reply: plain text to say, then any "DO:" lines, each understood like a typed command.
+    /// Copes with models that answer in JSON anyway, even when it's cut off half way.
     static func parseAnswer(_ reply: String) -> Answer {
-        guard let object = json(in: reply) else {
-            let plain = reply.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"`")))
-            return Answer(say: plain.isEmpty ? "Quack?" : String(plain.prefix(220)), deeds: [])
+        if let object = json(in: reply) {
+            let say = (object["say"] as? String) ?? (object["reply"] as? String) ?? "Quack."
+            let actions = object["do"] as? [[String: Any]] ?? []
+            return Answer(say: shorten(say, to: 170), deeds: actions.compactMap(deed))
         }
-        let say = (object["say"] as? String) ?? (object["reply"] as? String) ?? "Quack."
-        let actions = object["do"] as? [[String: Any]] ?? []
-        return Answer(say: String(say.prefix(220)), deeds: actions.compactMap(deed))
+        var said: [String] = []
+        var deeds: [Deed] = []
+        for raw in reply.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.uppercased().hasPrefix("DO:") {
+                let command = line.dropFirst(3).trimmingCharacters(in: .whitespaces)
+                deeds += Paws.parse(command) ?? []
+            } else if !line.isEmpty {
+                said.append(line)
+            }
+        }
+        var text = said.joined(separator: " ")
+        if text.contains("{") { text = quoted("say", in: text) ?? "" }
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"`*")))
+        return Answer(say: text.isEmpty ? (deeds.isEmpty ? "Quack?" : "On it.") : shorten(text, to: 170), deeds: deeds)
+    }
+
+    /// The text of `"key": "…"` in broken JSON, up to the closing quote or wherever it was cut off.
+    static func quoted(_ key: String, in text: String) -> String? {
+        guard let start = text.range(of: "\"\(key)\"")?.upperBound,
+              let open = text[start...].firstIndex(of: "\"") else { return nil }
+        var value = ""
+        var escaped = false
+        for character in text[text.index(after: open)...] {
+            if escaped { value.append(character); escaped = false; continue }
+            if character == "\\" { escaped = true; continue }
+            if character == "\"" { break }
+            value.append(character)
+        }
+        return value.isEmpty ? nil : value
+    }
+
+    /// Keeps a line short enough for the bubble: whole sentences if they fit, else whole words and "…".
+    static func shorten(_ text: String, to limit: Int) -> String {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > limit else { return text }
+        let head = String(text.prefix(limit))
+        if let end = head.lastIndex(where: { ".!?".contains($0) }), head.distance(from: head.startIndex, to: end) >= 15 {
+            return String(head[...end])
+        }
+        let words = head.split(separator: " ").dropLast().joined(separator: " ")
+        return words + "…"
     }
 
     private static func deed(_ action: [String: Any]) -> Deed? {

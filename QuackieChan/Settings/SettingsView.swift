@@ -767,7 +767,7 @@ private struct TalkPage: View {
                     VStack(spacing: 8) {
                         LiveDuck(mode: .petted, size: 100)
                         Text("Press ⌃⌥Q and just talk.").font(.custom(Fonts.display, size: 20).weight(.bold))
-                        Text("Or double-click the duck to type. Ask it anything, or to do things: "
+                        Text("Or choose Talk in its right-click menu to type. Ask it anything, or to do things: "
                              + "“quit Spotify”, “next song”, “volume 30”, “close this tab”, “remind me in 10 minutes to stretch”.")
                             .multilineTextAlignment(.center).foregroundStyle(.secondary)
                     }
@@ -777,6 +777,10 @@ private struct TalkPage: View {
             }
             Section {
                 Toggle("⌃⌥Q opens the talk box and listens", isOn: $settings.prefs.talkShortcut)
+                Toggle(isOn: $settings.prefs.doubleClickToTalk) {
+                    Text("Double-click the duck to talk")
+                    Text("Single clicks (pokes) then wait a moment, to be sure they aren't double clicks.")
+                }
                 PermissionRow(permission: .microphone, title: "Microphone")
             } footer: {
                 if #available(macOS 26, *) {

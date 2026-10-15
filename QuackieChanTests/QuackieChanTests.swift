@@ -66,6 +66,25 @@ struct BrainTests {
         #expect(Minds.parseAnswer("Bread.").deeds.isEmpty)
     }
 
+    @Test func readsPlainRepliesWithActions() {
+        let answer = Minds.parseAnswer("Bye bye, Spotify. It had a good run.\nDO: quit Spotify\nDO: volume 30")
+        #expect(answer.say == "Bye bye, Spotify. It had a good run.")
+        #expect(answer.deeds.count == 2)
+        #expect(answer.deeds.last == .volume(30))
+    }
+
+    @Test func survivesCutOffJSON() {
+        let answer = Minds.parseAnswer(#"{"say": "You can't shoot me from Paseo, little doomster. I've got a green thumb, a cozy pond by my duckside"#)
+        #expect(answer.say.hasPrefix("You can't shoot me from Paseo"))
+        #expect(!answer.say.contains("{"))
+    }
+
+    @Test func keepsLinesShort() {
+        let long = "First sentence here. " + String(repeating: "and on and on ", count: 30)
+        #expect(Minds.shorten(long, to: 170) == "First sentence here.")
+        #expect(Minds.shorten("Short.", to: 170) == "Short.")
+    }
+
     @Test func dropsThinking() {
         #expect(LocalBrain.withoutThinking("<think>hmm</think> Quack!") == "Quack!")
     }

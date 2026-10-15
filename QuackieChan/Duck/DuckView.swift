@@ -52,8 +52,7 @@ struct DuckStage: View {
         .rotationEffect(.degrees(duck.facingLeft ? -duck.motion.tilt : duck.motion.tilt), anchor: .bottom)
         .offset(y: -duck.motion.lift * pixel)
         .contentShape(Rectangle())
-        .onTapGesture(count: 2, perform: actions.talk)
-        .onTapGesture(perform: actions.poke)
+        .modifier(Taps(doubleClickToTalk: settings.prefs.doubleClickToTalk, actions: actions))
         .onHover(perform: actions.hover)
         .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .global)
             .onChanged { _ in actions.dragChanged() }
@@ -77,6 +76,21 @@ struct DuckStage: View {
         Button("Settings…", action: actions.openSettings)
         Divider()
         Button("Quit Quackie Chan", action: actions.quit)
+    }
+}
+
+/// A click pokes the duck. With double-click-to-talk on, a double click opens the talk box instead (and single
+/// clicks wait a moment to make sure they're not the first half of a double).
+private struct Taps: ViewModifier {
+    let doubleClickToTalk: Bool
+    let actions: DuckActions
+
+    func body(content: Content) -> some View {
+        if doubleClickToTalk {
+            content.onTapGesture(count: 2, perform: actions.talk).onTapGesture(perform: actions.poke)
+        } else {
+            content.onTapGesture(perform: actions.poke)
+        }
     }
 }
 
