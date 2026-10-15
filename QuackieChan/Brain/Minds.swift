@@ -112,13 +112,15 @@ final class Minds {
             // The text read off the screen goes in even with a picture: small models read printed words far
             // better than pixels.
             prompt += "What's on their screen right now:\n\(Self.describe(context, withText: true))\n"
+            let shown = context.wholeScreen ? "whole screen" : "front window"
             if images.count == 2 {
-                prompt += "(Picture 1 is their whole front window. Picture 2 is a sharp close-up around their mouse pointer.)\n"
+                prompt += "(Picture 1 is their \(shown). Picture 2 is a sharp close-up around their mouse pointer.)\n"
             } else if !images.isEmpty {
-                prompt += "(The attached picture is their front window.)\n"
+                prompt += "(The attached picture is their \(shown).)\n"
             }
             if aboutScreen {
-                prompt += "They're asking about the screen: say which app it is and what's actually on it, quoting a few "
+                prompt += "They're asking about the screen: say what's actually on it (the app in front and anything else "
+                    + "showing), quoting a few "
                     + "real words or names from it, then give your opinion. \"This\", \"that\" and \"here\" mean what "
                     + "their pointer is on, or the text they selected.\n"
             }
@@ -265,14 +267,17 @@ final class Minds {
         if let title = glance.windowTitle { lines.append("Window: \(title)") }
         if let url = glance.url { lines.append("Address: \(url)") }
         if let pointing = glance.pointing {
-            lines.append("Their mouse pointer is on: \(pointing)" + (glance.pointerSpot.map { " (\($0) of the window)" } ?? ""))
+            lines.append("Their mouse pointer is on: \(pointing)" + (glance.pointerSpot.map { " (\($0) of the screen)" } ?? ""))
         } else if let spot = glance.pointerSpot {
-            lines.append("Their mouse pointer is in the \(spot) of the window.")
+            lines.append("Their mouse pointer is in the \(spot) of the screen.")
         }
         if let selection = glance.selection { lines.append("Text they have selected: \"\(selection)\"") }
         if let focus = glance.focus { lines.append("Typing goes into: \(focus)") }
+        if !glance.windows.isEmpty {
+            lines.append("Windows showing on screen, front to back: " + glance.windows.joined(separator: "; "))
+        }
         if !glance.controls.isEmpty {
-            lines.append("Buttons, fields and links in the window: " + glance.controls.prefix(40).joined(separator: ", "))
+            lines.append("Buttons, fields and links in the front window: " + glance.controls.prefix(40).joined(separator: ", "))
         }
         if withText, let text = glance.text {
             lines.append("Text on screen, laid out as it appears (| separates columns):\n\(text.prefix(3500))")

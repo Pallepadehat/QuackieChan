@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0C3A2D4650102CBB22C6F4DA /* Desk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7FD163F95E5CCCB4967878 /* Desk.swift */; };
 		0E0C006E26BB8D13F02F15F2 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45F1643F22939D956D2741AD /* Settings.swift */; };
+		0E4B4248E601364558D70268 /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CDE14DBC8317732E7934DA /* LoginItem.swift */; };
 		0E9F80FFDF2FD295144A325F /* Director.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6CF952D6988C195171DB4C1 /* Director.swift */; };
 		0F6B3FF814D4904E6C1BCC0B /* Lines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4904585AE07B63265A256CEE /* Lines.swift */; };
 		1086E472E927A32DB747BF64 /* DuckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05519901666DE77E0DC8B722 /* DuckView.swift */; };
@@ -65,6 +66,7 @@
 /* Begin PBXFileReference section */
 		05519901666DE77E0DC8B722 /* DuckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckView.swift; sourceTree = "<group>"; };
 		0B3C4F62FE2A80EAAC1D1113 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		14CDE14DBC8317732E7934DA /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		1AB6FC7725D8BC235B1C41C9 /* Minds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Minds.swift; sourceTree = "<group>"; };
 		1D7FD163F95E5CCCB4967878 /* Desk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Desk.swift; sourceTree = "<group>"; };
 		266309EC711A8741610E3C45 /* OFL-Fredoka.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-Fredoka.txt"; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 		4345A2D2CC2264FAB234CC49 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				14CDE14DBC8317732E7934DA /* LoginItem.swift */,
 				9BBDE540FDC9D4901BE9679B /* Permissions.swift */,
 				45F1643F22939D956D2741AD /* Settings.swift */,
 				0B3C4F62FE2A80EAAC1D1113 /* SettingsView.swift */,
@@ -375,6 +378,7 @@
 				0F6B3FF814D4904E6C1BCC0B /* Lines.swift in Sources */,
 				1950F42AE758E18A20AB53EA /* LocalBrain.swift in Sources */,
 				5E8825B2D9A8DCDD5E0F8E33 /* Log.swift in Sources */,
+				0E4B4248E601364558D70268 /* LoginItem.swift in Sources */,
 				C4EFA508F50446F320DF1499 /* Minds.swift in Sources */,
 				F2EC8F44D943A94DC32B2B64 /* ModelLibrary.swift in Sources */,
 				2968232C51B55A371124BABA /* Music.swift in Sources */,

@@ -304,8 +304,32 @@ private struct DuckPage: View {
                 VoicePicker()
                     .disabled(!settings.prefs.voiceOn)
             }
+            StartAtLogin()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The switch for starting Quackie Chan when you log in.
+private struct StartAtLogin: View {
+    let login = LoginItem.shared
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(get: { login.isOn }, set: { login.set($0) })) {
+                Text("Start when you log in")
+                Text("The duck drops onto your screen every time you start your Mac.")
+            }
+            if login.needsApproval {
+                LabeledContent("macOS wants you to allow it first") {
+                    Button("Open Login Items…") { login.openSettings() }
+                }
+            }
+            if let problem = login.problem {
+                Text(problem).font(.caption).foregroundStyle(.red)
+            }
+        }
+        .onAppear { login.refresh() }
     }
 }
 
