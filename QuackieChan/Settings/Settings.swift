@@ -148,7 +148,7 @@ enum AnswerLength: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .short: "one short sentence, at most 20 words"
         case .normal: "one to three short sentences, at most 45 words"
-        case .long: "as long as it takes to answer properly, up to about 150 words, in short paragraphs"
+        case .long: "four to six sentences, at most 65 words, packed with real detail"
         }
     }
 
@@ -156,16 +156,16 @@ enum AnswerLength: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .short: 120
         case .normal: 240
-        case .long: 600
+        case .long: 320
         }
     }
 
-    /// How much the speech bubble shows.
+    /// How much the speech bubble shows. Its panel is a fixed size, so even detailed answers stay under about 13 lines.
     var bubbleLimit: Int {
         switch self {
         case .short: 140
         case .normal: 230
-        case .long: 900
+        case .long: 380
         }
     }
 }

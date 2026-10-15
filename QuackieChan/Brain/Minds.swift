@@ -103,8 +103,8 @@ final class Minds {
         var images: [CGImage] = []
         if canLook(brain), let picture {
             images.append(picture)
-            // A sharp close-up of what they're pointing at, for "what's this?".
-            if aboutScreen, let closeUp = context?.closeUp { images.append(closeUp) }
+            // A sharp close-up of what they're pointing at, for "what's this?". Apple Intelligence takes one picture.
+            if aboutScreen, let closeUp = context?.closeUp, case .mlx = brain { images.append(closeUp) }
         }
 
         var prompt = ""
@@ -144,6 +144,7 @@ final class Minds {
         let personality = prefs.personality
         let instructions = "You write lines for \(prefs.duckName), a tiny pixel duck living on someone's Mac screen. "
             + "It is \(personality.voice). Its current mood is \(Feelings.shared.mood.name.lowercased())."
+            + Self.personal(prefs)
         let prompt = """
         Write 8 short, funny, varied things the duck might say out of nowhere while the user works. \
         Each at most 12 words. Mix observations, weird thoughts, duck facts, gentle teasing and feelings. \

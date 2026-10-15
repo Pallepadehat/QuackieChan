@@ -167,7 +167,7 @@ enum Eyes {
         glance.wholeScreen = true
         glance.windows = openWindows(on: frame, hiding: hidden)
         glance.text = await read(image, carefully: true)
-        await feel(frame, image: image, scale: scale, into: &glance)
+        await feel(frame, image: image, scale: scale, hiding: hidden, into: &glance)
     }
 
     /// Every window showing on a display, front to back, like "Safari: Amazon.com: Monkey Chair (front)".
@@ -199,7 +199,8 @@ enum Eyes {
     /// What Accessibility and your pointer add: the control you're pointing at, a close-up around it, your
     /// selection, where typing goes, and the front window's named controls. `frame` is what the picture covers, in
     /// Quartz points.
-    private static func feel(_ frame: CGRect, image: CGImage, scale: CGFloat, into glance: inout Glance) async {
+    private static func feel(_ frame: CGRect, image: CGImage, scale: CGFloat, hiding hidden: Set<String>,
+                             into glance: inout Glance) async {
         let pointer = Feel.pointer
         if frame.contains(pointer) {
             let x = (pointer.x - frame.minX) / frame.width, y = (pointer.y - frame.minY) / frame.height
@@ -212,7 +213,7 @@ enum Eyes {
             crop.origin.y = min(max(0, crop.minY), frame.height - size.height)
             let pixels = CGRect(x: crop.minX * scale, y: crop.minY * scale, width: crop.width * scale, height: crop.height * scale)
             glance.closeUp = image.cropping(to: pixels.integral)
-            let control = await Task.detached(priority: .userInitiated) { Feel.control(at: pointer) }.value
+            let control = await Task.detached(priority: .userInitiated) { Feel.control(at: pointer, hiding: hidden) }.value
             if let control, control.frame.width < frame.width * 0.6 {
                 glance.pointing = "\(control.role) “\(control.label)”"
             }

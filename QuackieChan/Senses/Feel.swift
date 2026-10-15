@@ -32,8 +32,9 @@ enum Feel {
         return (frame(of: focused), subrole == "AXSecureTextField", describe(focused))
     }
 
-    /// The control at a point on screen (Quartz space), if it can be read.
-    static func control(at point: CGPoint) -> Control? {
+    /// The control at a point on screen (Quartz space), if it can be read and doesn't belong to an app in `hidden`
+    /// (bundle IDs the duck must never look at).
+    static func control(at point: CGPoint, hiding hidden: Set<String> = []) -> Control? {
         guard AXIsProcessTrusted() else { return nil }
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, 0.2)
@@ -41,6 +42,10 @@ enum Feel {
         guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success, var element = hit else {
             return nil
         }
+        // A password manager's panel can sit under the pointer without being the front app.
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(element, &pid) == .success, pid != ProcessInfo.processInfo.processIdentifier,
+              !hidden.contains(NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? "") else { return nil }
         // Walk up to the nearest thing with a name, so a click on a button's label reads as the button.
         for _ in 0..<4 {
             let role: String = attribute(element, kAXRoleAttribute) ?? ""
