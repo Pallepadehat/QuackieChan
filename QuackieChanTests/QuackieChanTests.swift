@@ -165,6 +165,12 @@ struct SoundTests {
         #expect((quack.map(abs).max() ?? 0) <= 0.81)
     }
 
+    @Test func loadsThePistol() throws {
+        let shot = try #require(Synth.pistol)
+        let seconds = Double(shot.count) / Synth.rate
+        #expect(seconds > 0.2 && seconds < 1.2)
+    }
+
     @Test func pitchesQuacksUpAndDown() throws {
         let quack = try #require(Synth.recorded)
         #expect(Synth.resample(quack, by: 1.25).count < quack.count)

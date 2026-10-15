@@ -30,6 +30,8 @@ struct Prefs: Codable, Equatable {
     var brainModelID: String?
     /// What you talk to the duck with. Nil uses the seeing brain.
     var chatModelID: String?
+    /// Whether it makes a sound when it talks. Separate from sound effects (the gun, clicks, quacks).
+    var voiceOn = true
     /// The sound it makes while it talks.
     var voice = Voice.quacks
     /// Set once the real recorded quack became the default voice, so older settings switch over once.
@@ -155,6 +157,10 @@ final class Settings {
 
     private init() {
         prefs = Self.load()
+        if prefs.voice == .off {
+            prefs.voiceOn = false
+            prefs.voice = .quacks
+        }
         if !prefs.hasRealQuack {
             prefs.hasRealQuack = true
             prefs.voice = .quacks

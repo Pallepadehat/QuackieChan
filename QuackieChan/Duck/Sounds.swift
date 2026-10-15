@@ -31,7 +31,7 @@ final class Sounds {
     /// Says a line in the duck's voice (a sound per syllable or word), pitched to its personality.
     func babble(_ text: String, personality: Personality, voice: Voice? = nil) {
         let voice = voice ?? Settings.shared.prefs.voice
-        guard Settings.shared.prefs.sounds, voice != .off else { return }
+        guard Settings.shared.prefs.voiceOn, voice != .off else { return }
         player.stop()  // a new line cuts off the old one
         schedule(Synth.speak(text, voice: voice, personality: personality, format: format))
     }
@@ -60,7 +60,7 @@ nonisolated enum Synth {
 
     static func make(_ effect: Sounds.Effect, format: AVAudioFormat) -> AVAudioPCMBuffer {
         switch effect {
-        case .gunshot: return buffer(gunshot(), format)
+        case .gunshot: return buffer(pistol ?? gunshot(), format)
         case .cock: return buffer(cock(), format)
         case .quack: return buffer(realQuack(pitch: .random(in: 0.92...1.12)) ?? quack(pitch: .random(in: 0.9...1.15)), format)
         case .tick: return buffer(tone(1650, length: 0.035, decay: 0.012, volume: 0.35), format)
@@ -192,8 +192,14 @@ nonisolated enum Synth {
     // MARK: The recorded quack
 
     /// QuackieChan/Sounds/quack.mp3, mono, with the silence around it trimmed off. Nil if it can't be read.
-    static let recorded: [Float]? = {
-        guard let url = Bundle.main.url(forResource: "quack", withExtension: "mp3"),
+    static let recorded = load("quack", quietBelow: 0.02, peak: 0.8)
+
+    /// QuackieChan/Sounds/pistol.mp3: the gunshot. Its quiet tail is kept, only the silence after goes.
+    static let pistol = load("pistol", quietBelow: 0.003, peak: 0.95)
+
+    /// Reads a bundled mp3 as mono samples at our rate, trims the near-silence around it and sets its peak.
+    static func load(_ name: String, quietBelow threshold: Float, peak target: Float) -> [Float]? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "mp3"),
               let file = try? AVAudioFile(forReading: url),
               let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
               (try? file.read(into: buffer)) != nil,
@@ -206,17 +212,17 @@ nonisolated enum Synth {
             mono = resample(mono, by: Float(file.processingFormat.sampleRate / rate))
         }
         // Trim the quiet before and after, keeping a few milliseconds so it doesn't click.
-        let loud = mono.indices.filter { abs(mono[$0]) > 0.02 }
+        let loud = mono.indices.filter { abs(mono[$0]) > threshold }
         guard let first = loud.first, let last = loud.last else { return nil }
         let pad = Int(rate * 0.005)
         var trimmed = Array(mono[max(0, first - pad)...min(mono.count - 1, last + pad)])
         let peak = trimmed.map(abs).max() ?? 1
-        trimmed = trimmed.map { $0 / peak * 0.8 }
+        trimmed = trimmed.map { $0 / peak * target }
         // Fade the last 20 ms out.
         let fade = min(trimmed.count, Int(rate * 0.02))
         for i in 0..<fade { trimmed[trimmed.count - fade + i] *= Float(fade - i) / Float(fade) }
         return trimmed
-    }()
+    }
 
     /// The recorded quack at another pitch (by playing it faster or slower, like a tape).
     static func realQuack(pitch: Float) -> [Float]? {

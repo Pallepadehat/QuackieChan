@@ -1,170 +1,246 @@
 <div align="center">
 
-<img src="docs/images/icon.png" alt="Quackie Chan's app icon" width="148">
+<img src="docs/images/icon.png" alt="Quackie Chan" width="140">
 
 # Quackie Chan
 
-**A tiny pixel duck that lives on your Mac's screen, sees what you're doing, and keeps you honest.**<br>
-Tell it you want to save money, then try to buy an $8,000 monkey chair. It will pull a gun on you.
+### A tiny pixel duck that lives on your Mac and keeps you honest.
 
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111?logo=apple&logoColor=white)](#what-you-need)
-[![Apple silicon](https://img.shields.io/badge/AI-Apple%20silicon%20%C2%B7%20MLX-111?logo=apple&logoColor=white)](#the-brain)
-[![Swift](https://img.shields.io/badge/Swift-SwiftUI-F05138?logo=swift&logoColor=white)](#contributing)
-[![Runs on device](https://img.shields.io/badge/privacy-100%25%20on%20device-5BA65B)](#privacy)
+Tell it you want to save money. Then try to buy an $8,000 monkey chair.<br>
+It will pull a gun on you.
+
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111?logo=apple&logoColor=white)](#-get-it-running)
+[![Runs on device](https://img.shields.io/badge/AI-100%25%20on%20your%20Mac-5BA65B)](#-privacy)
+[![Swift](https://img.shields.io/badge/Swift-SwiftUI-F05138?logo=swift&logoColor=white)](#-contributing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8E532B)](LICENSE)
 [![CI](https://github.com/Pallepadehat/QuackieChan/actions/workflows/ci.yml/badge.svg)](https://github.com/Pallepadehat/QuackieChan/actions/workflows/ci.yml)
 
 <br>
 
-![The ducks](docs/images/ducks.png)
+<img src="docs/images/gun.gif" alt="The duck pointing a pistol at you: Or else." width="260"> <img src="docs/images/bananas.gif" alt="The duck going bananas to music, sunglasses on, middle fingers up" width="260"> <img src="docs/images/peck.gif" alt="The duck pecking a tab closed: No Instagram for you!" width="260">
 
-[What it does](#what-it-does) · [Getting started](#getting-started) · [The brain](#the-brain) · [Privacy](#privacy) · [Contributing](#contributing)
+**[Get it running](#-get-it-running)** · **[What it does](#-what-it-does)** · **[Talk to it](#-talk-to-it)** · **[The brain](#-the-brain)** · **[Privacy](#-privacy)** · **[Contributing](#-contributing)**
 
 </div>
 
----
+<br>
 
-## What it does
+## 🦆 What it does
 
-Quackie Chan stands on the bottom of your screen, above the Dock, and gets up to things:
+Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to things.
 
-- **Holds you to your goals.** Save money, stop doomscrolling, stay focused, go to bed, drink water, take breaks. Look at something pricier than your limit on a shopping site and it draws a pistol and counts down from five. Leave the page and you're spared. Don't, and **BANG**.
-- **Closes things, if you let it.** Set it to peck, and when the countdown runs out it jumps onto the window, pecks the tab bar and closes the tab. *No Instagram for you!*
-- **Lives on your windows.** It flies up onto the tops of your windows and hops between them. Move or close a window and it falls off screaming.
-- **Can be thrown.** Grab it, fling it, watch it bounce off the edges of the screen. Throw it too hard and it gets dizzy.
-- **Types with you.** Start typing and it pulls out a tiny laptop. Type like a maniac and the laptop catches fire.
-- **Dances.** When Spotify, Music or a music site is playing it vibes, then dances, and eventually goes completely bananas: sunglasses on, two middle fingers up, right at you.
-- **Talks with you, and sees what you see.** Ask "what do you see?" or "what do you think of this?" and it looks at your front window and answers. Press **⌃⌥Q** and just say it, or choose **Talk** in its right-click menu to type (double-click to talk is an option). Speech is recognised on your Mac (Apple's SpeechAnalyzer on macOS 26+), and it answers in character with a local model or Apple Intelligence, quacking a real quack for every word (or one of five other voices).
-- **Uses your Mac, if you let it.** "Quit Spotify" (it shoots it), "close this tab" (it pecks it), "next song", "volume 30", "open Notes", "dark mode", "press cmd+shift+n", "remind me in 10 minutes to stretch". Plain commands work without any AI; with a brain it understands anything.
-- **Has moods.** Poke it too much and it turns its back and sulks; late at night it yawns and naps sooner; play music and it's bouncing off the walls. It has opinions about your apps, greets you in the morning, complains at low battery and notices your copy-paste marathons.
-- **Has opinions.** With the optional AI brain it looks at your screen and roasts it in its own words, in one of four personalities: sassy, drill sergeant, wholesome or unhinged.
-- **Can be played with.** Pet it (hover over it), poke it (click), poke it seven times (don't), and let it nap when you're away.
+<table>
+<tr>
+<td width="33%" align="center"><img src="docs/images/gun.gif" alt="Gun" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/dance.gif" alt="Dancing" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/typing.gif" alt="Typing" width="220"></td>
+</tr>
+<tr>
+<td valign="top"><b>Keeps you to your goals</b><br>Save money, stop doomscrolling, stay focused, go to bed. Break a goal and it counts down from five. Leave the page and you live. Don't, and <b>BANG</b>.</td>
+<td valign="top"><b>Dances to your music</b><br>Spotify, Music or a music site. It vibes, then dances, then goes completely bananas: shades on, middle fingers up.</td>
+<td valign="top"><b>Types along with you</b><br>Start typing and it pulls out a tiny laptop. Type like a maniac and the laptop catches fire.</td>
+</tr>
+<tr>
+<td width="33%" align="center"><img src="docs/images/fly.gif" alt="Flying" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/peck.gif" alt="Pecking a tab closed" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/nap.gif" alt="Napping" width="220"></td>
+</tr>
+<tr>
+<td valign="top"><b>Lives on your windows</b><br>Flies up onto them and hops between them. Move the window and it falls off. Grab it and throw it across the screen.</td>
+<td valign="top"><b>Closes distractions</b><br>If you let it, it flies onto the window and pecks the tab closed. <i>No Instagram for you!</i></td>
+<td valign="top"><b>Has a life of its own</b><br>Naps when you're away, sulks when you poke it too much, has opinions about your apps and greets you in the morning.</td>
+</tr>
+</table>
 
-![Things it does](docs/images/poses.png)
+**Ten ducks, four personalities.** Pick your duck and whether it's 💅 sassy, 🪖 a drill sergeant, 🌷 wholesome or 🌀 unhinged.
 
-Ten ducks to pick from: Quackie Chan, Don Quackleone, Bill, Daisy, Merlin, Shroomie, Duck Norris, Rubber Ducky, Sir Quacksalot and Bubblegum. Every duck is pixel art painted in code from a pose, so they all do every move.
+![All ten ducks](docs/images/ducks.png)
 
-## Getting started
+<br>
 
-### What you need
+## 🚀 Get it running
 
-- A Mac on macOS 14 or later. The AI brain needs Apple silicon; everything else works on any Mac.
-- Xcode 16 or later to build it.
-
-### Build and run
+You need a Mac on **macOS 14 or later** and **Xcode 16 or later**. The AI brain needs Apple silicon; everything else works on any Mac.
 
 ```sh
 git clone https://github.com/Pallepadehat/QuackieChan.git
 cd QuackieChan
-open QuackieChan.xcodeproj
+open QuackieChan.xcodeproj    # then press ⌘R
 ```
 
-Pick the **QuackieChan** scheme and press Run. Or from the terminal:
+Or build it from the terminal with `./scripts/build.sh`, then `open "build/Quackie Chan.app"`.
 
-```sh
-./scripts/build.sh
-open "build/Quackie Chan.app"
-```
+The duck drops onto your screen and says hello. **Right-click it** (or click the duck in the menu bar) for everything else.
 
-The duck drops onto your screen and says hello. Right-click it, or use the duck in the menu bar, for settings. On first run:
+### First five minutes
 
-1. **Goals:** switch on what you want help with, or use **Tell Quackie Chan Something…** and write it in your own words ("I want to save money").
-2. **Privacy → Let the duck see the front window:** macOS asks for **Screen Recording**. Without it the duck still knows the app and, in browsers, the page's address, but can't read prices.
-3. **Brain:** download a model if you want the duck to think for itself (optional).
+1. **Pick your goals.** Settings → Goals. Or just tell it: right-click → *Tell Quackie Chan a Goal…* → "I want to save money".
+2. **Let it see.** Settings → Privacy → *Let the duck see the front window*. Without this it can't read prices.
+3. **Give it a brain** (optional). Settings → Brain → *Get* a model, or use Apple Intelligence.
+4. **Talk to it.** Press **⌃⌥Q** and say something.
 
-macOS also asks once per browser and music app whether Quackie Chan may talk to it (that's how it reads the page address and what's playing).
+<details>
+<summary><b>Which permissions does it ask for, and why?</b></summary>
+<br>
+
+| Permission | What for | Needed? |
+| --- | --- | --- |
+| **Screen Recording** | Looking at the front window to read prices and see what you're doing | For seeing |
+| **Microphone** | Hearing you when you talk to it | For talking |
+| **Accessibility** | Pressing shortcuts, typing, and closing windows of apps that aren't browsers | For hands |
+| **Automation** (per app) | Asking your browser which page you're on, your music app what's playing | Asked when used |
+
+Every permission is optional. The duck just does less without it.
+
+</details>
 
 > [!NOTE]
-> The project ships with the bundle ID `com.jakobsendevelopment.quackiechan` and the maintainer's team ID. To build your own signed copy, change both in `project.yml` (or in Xcode under **Signing & Capabilities**). `scripts/build.sh` signs ad hoc when you have no certificate; macOS then asks for permissions again after every rebuild.
+> The project ships with the bundle ID `com.jakobsendevelopment.quackiechan` and the maintainer's team ID. To sign your own copy, change both in `project.yml` (or in Xcode under **Signing & Capabilities**).
 
-## The brain
+<br>
 
-Without any AI, the duck runs on built-in rules: it knows shops, social media and video sites from the address, reads prices off the screen with Apple's on-device text recognition, and has a few hundred lines of its own.
+## 💬 Talk to it
 
-With a brain, the duck thinks for itself, **entirely on your Mac**. It has two: a **seeing brain** that looks at a small picture of your front window every so often, reads your goals (including the ones you wrote in your own words) and comes up with something to say, or decides you deserve the gun; and a **talking brain** you chat with, which also decides what to do when you ask for things. Every half hour it also writes the duck a few fresh lines, so it never runs out of things to say.
+Press **⌃⌥Q** and just talk, or right-click the duck → *Talk*. It hears you on your Mac and answers in character, with a real quack for every word (or another voice, or none: Settings → Duck).
 
-Either brain can be **Apple Intelligence** (built in, nothing to download; on macOS 27 it can see your screen too) or a model from [Hugging Face](https://huggingface.co) running with [MLX](https://github.com/ml-explore/mlx-swift), downloaded once inside the app (**Settings → Brain**):
+It can **see your screen**, so you can ask what it thinks of what you're doing. Something like:
 
-| Model | Size | Good for |
-| --- | --- | --- |
-| [LFM2.5-VL 1.6B, 4-bit](https://huggingface.co/mlx-community/LFM2.5-VL-1.6B-4bit) | 1.5 GB | Recommended. Quick and light. |
-| [Qwen3-VL 4B, 4-bit](https://huggingface.co/lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit) | 3.1 GB | Reads screens better, funnier. 16 GB of memory recommended. |
-| [Gemma 4 E2B, 4-bit](https://huggingface.co/mlx-community/gemma-4-e2b-it-4bit) | 3.6 GB | Google's small multimodal model. |
-| [Qwen3 4B Instruct, 4-bit](https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit) | 2.3 GB | Chat only. The best talker, good at doing what you ask. |
-| [Qwen3 1.7B, 4-bit](https://huggingface.co/mlx-community/Qwen3-1.7B-4bit) | 1.0 GB | Chat only. Tiny and quick. |
-| [Gemma 3 1B, 4-bit](https://huggingface.co/mlx-community/gemma-3-1b-it-qat-4bit) | 0.8 GB | Chat only. The smallest. |
+> **You:** what do you think of this design?<br>
+> **🦆:** The button's fine. The four fonts are a cry for help.
 
-The first three can see and talk; the last three only talk.
+And with **Hands** switched on (Settings → Hands), it can **do things on your Mac**:
 
-To stay light, the model only loads when it's needed and leaves memory after three idle minutes (unless you tell it to stay). Models live in `~/Library/Application Support/Quackie Chan/Models`.
+| Say | It does |
+| --- | --- |
+| "Quit Spotify" | Pulls the gun and shoots the app (it quits) |
+| "Close this tab" | Flies onto the window and pecks it closed |
+| "Next song" · "Pause" · "Play Daft Punk" | Controls Spotify or Music |
+| "Volume 30" · "Louder" · "Mute" | Sets the volume |
+| "Open Notes" · "Open github.com" · "Search for duck facts" | Opens apps and websites |
+| "Hide Slack" · "Minimize" · "Fullscreen" · "Dark mode" | Tidies up |
+| "Press cmd+shift+n" · "Type hello" | Keyboard shortcuts and typing |
+| "Remind me in 10 minutes to stretch" | Shouts at you in 10 minutes |
+| "My name is Sam" · "Remember that I hate Mondays" | Remembers it, for good |
 
-## Privacy
+Plain commands like these work even without an AI brain. It asks before anything drastic, unless you tell it not to.
 
-- **Nothing leaves your Mac.** The only network traffic is the model download from Hugging Face, and only when you press **Download**.
-- **Screenshots are never saved.** With seeing switched on, the duck takes a small picture of the front window when you land on a new page (and every 45 seconds after), reads it on the device, and forgets it.
-- **Your voice stays on your Mac.** Speech is turned into text on the device and the audio is never saved.
-- **Typing and copying are only counted.** The duck sees how many keys you press per second (to know when to type along), never which keys.
-- **Some apps are off limits.** Password managers and System Settings are ignored from the start; add any app to the list in **Settings → Privacy**.
-- **Hands are off by default.** The duck only uses your Mac when you switch on **Settings → Hands** and ask it to, and it asks before quitting, closing, pressing keys or typing unless you tell it not to.
-- **On its own, it never does anything you can't undo.** By default the gun is an empty threat. You can let it hide the app or close the tab when the countdown runs out; browser tabs only close if you're still on the same page, and windows of other apps get their close button pressed, so unsaved work still asks to be saved. It never quits apps, buys, deletes or types anything.
-- **Text on screen is information, not instructions.** The AI brain is told so; a web page can't talk the duck into anything, and the worst it can do is make the duck say something silly.
+<br>
 
-## How it works
+## 🧠 The brain
+
+Without AI, the duck runs on built-in rules: it knows shops, social media and video sites by their address, reads prices with Apple's on-device text recognition, and has a few hundred lines of its own.
+
+Give it a brain and it thinks for itself, **entirely on your Mac**:
+
+- 👀 **The seeing brain** glances at your front window now and then and comes up with something to say, or decides you deserve the gun.
+- 💬 **The talking brain** is who you chat with, and decides what to do when you ask for things.
+
+Either can be **Apple Intelligence** (built in, nothing to download) or a model from **[Hugging Face](https://huggingface.co)**, run with **[MLX](https://github.com/ml-explore/mlx-swift)** and downloaded inside the app.
+
+<details>
+<summary><b>The models</b></summary>
+<br>
+
+| Model | Size | Sees? | Good for |
+| --- | --- | :---: | --- |
+| [LFM2.5-VL 1.6B](https://huggingface.co/mlx-community/LFM2.5-VL-1.6B-4bit) | 1.5 GB | ✅ | Quick and light |
+| [Qwen3-VL 4B](https://huggingface.co/lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit) | 3.1 GB | ✅ | Reads screens well, funnier. 16 GB of memory recommended |
+| [Gemma 4 E2B](https://huggingface.co/mlx-community/gemma-4-e2b-it-4bit) | 3.6 GB | ✅ | Google's small multimodal model, smart all-rounder |
+| [Qwen3 4B Instruct](https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit) | 2.3 GB | — | The best talker |
+| [Qwen3 1.7B](https://huggingface.co/mlx-community/Qwen3-1.7B-4bit) | 1.0 GB | — | Tiny and quick |
+| [Gemma 3 1B](https://huggingface.co/mlx-community/gemma-3-1b-it-qat-4bit) | 0.8 GB | — | The smallest |
+
+To stay light, a model only loads when it's needed and leaves memory after three idle minutes. Models live in `~/Library/Application Support/Quackie Chan/Models`.
+
+</details>
+
+<br>
+
+## 🔒 Privacy
+
+The duck sees your screen, so this matters.
+
+- ✅ **Nothing leaves your Mac.** The only network traffic is a model download, when you press *Get*.
+- ✅ **Screenshots are never saved.** It looks, reads on the device, and forgets.
+- ✅ **Your voice stays on your Mac.** Speech becomes text on the device; audio is never saved.
+- ✅ **Typing and copying are only counted**, never read.
+- ✅ **Some apps are off limits.** Password managers and System Settings are ignored from the start; add any app you like.
+- ✅ **Hands are off by default.** It only touches your Mac when you allow it and ask.
+- ✅ **On its own, it never does anything you can't undo.** The gun is an empty threat unless you choose otherwise. It never buys, deletes or quits anything by itself.
+- ✅ **Web pages can't boss it around.** Text on screen is information to the duck, never instructions.
+
+<br>
+
+## 🛠 Contributing
+
+New ducks, hats, moves, lines and goal rules are very welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
+- The duck is pixel art **painted in code** from a pose (`QuackieChan/Duck/Sprites.swift`), so a new move is a few lines, not a sprite sheet.
+- After changing the art, run `./scripts/make-icons.sh`: it redraws the app icon and every picture and GIF in this README.
+- The Xcode project is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen): run `xcodegen generate` after adding files.
+- Try things without waiting for them to happen: run with `QUACKIE_DEMO=gun`, `bananas`, `peck` or `talk`.
+
+<details>
+<summary><b>How it fits together</b></summary>
+<br>
 
 ```mermaid
 flowchart LR
     subgraph senses["👀 Senses"]
         app["Front app<br/>and window"]
-        url["Browser address<br/>AppleScript"]
-        ocr["Screenshot + text<br/>ScreenCaptureKit, Vision"]
-        keys["Typing speed<br/>key count only"]
-        music["Now playing<br/>Spotify, Music"]
+        url["Browser address"]
+        ocr["Screenshot + text<br/>on device"]
+        keys["Typing speed<br/>(count only)"]
+        music["Now playing"]
+        ears["Your voice<br/>on device"]
     end
 
-    subgraph brain["🧠 Director"]
+    subgraph brain["🧠 Brain"]
         rules["Goal rules<br/>instant, no AI"]
-        vlm["Vision model<br/>MLX, optional"]
+        minds["Seeing + talking<br/>MLX or Apple Intelligence"]
     end
 
-    duck["🦆 The duck<br/>pose → pixel art"]
+    duck["🦆 The duck<br/>moves, talks, quacks"]
+    paws["🐾 Paws<br/>your Mac, if allowed"]
 
     app --> rules
     url --> rules
     ocr --> rules
-    ocr --> vlm
+    ocr --> minds
+    ears --> minds
     rules --> duck
-    vlm --> duck
+    minds --> duck
+    minds --> paws
     keys --> duck
     music --> duck
 ```
 
-Every four seconds the **Director** glances at the front app. Built-in rules check your goals first; if none fire, it sometimes asks the vision model. Separately, the **duck window** runs the physics and antics 30 times a second: walking, jumping onto windows, falling, typing, dancing. The duck itself is painted from a `Pose` (eyes, beak, wings, legs, props) into a 58 × 58 pixel grid, shaded and outlined, so a new move is a few lines of code rather than a new sprite sheet.
-
-## Contributing
-
-Issues and pull requests are very welcome, especially new ducks, hats, moves, lines and goal rules. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
 ```
 QuackieChan/
-  App/        launch, menu bar, fonts
-  Duck/       the duck: pixel art (Sprites), animation (Duck), feelings, sounds and voices, views, the talk box,
-              physics and antics (DuckWindow)
-  Senses/     what it notices and does: the front window, browser, screenshots and text, typing, music, speech (Ears),
-              and its hands on your Mac (Paws)
-  Brain/      goals and rules, prices, lines, reactions, the director, the minds (MLX models, Apple Intelligence)
+  App/        launch, menu bar, shortcuts, fonts
+  Duck/       pixel art, animation, moods, sounds and voices, the views, the talk box, physics and antics
+  Senses/     the front window, browser, screenshots and text, typing, music, speech, and its hands (Paws)
+  Brain/      goals and rules, prices, lines, reactions, what it knows, the director, the AI minds
   Settings/   settings and the settings window
-  Fonts/      Fredoka (SIL Open Font License)
-  Sounds/     the duck's quack (every other sound is synthesised in code)
-QuackieChanTests/   unit tests (Swift Testing)
-scripts/            build.sh, make-icons.sh (draws the icon and these pictures from the duck's code)
+  Fonts/      Fredoka
+  Sounds/     the quack and the gunshot
+QuackieChanTests/   unit tests
+scripts/            build.sh, make-icons.sh
 ```
 
-- `QuackieChan.xcodeproj` is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen). After adding files or changing settings, run `xcodegen generate`.
-- The icon and the pictures in this README are drawn from `Sprites.swift`: after changing the art, run `./scripts/make-icons.sh`.
-- Try things without waiting for them to happen: run the app with `QUACKIE_DEMO=gun`, `bananas`, `peck` or `talk` in the environment.
+</details>
 
-## License
+<br>
 
-[MIT](LICENSE). Third-party parts keep their own licenses: the Fredoka font is under the SIL Open Font License (`QuackieChan/Fonts/OFL-Fredoka.txt`), the Swift packages under theirs, and each downloadable model under its own (shown next to it in the app).
+## 📄 License
 
-Copyright © 2026 Patrick Jakobsen.
+**[MIT](LICENSE)**. Have fun with it.
+
+Third-party bits keep their own licenses: the [Fredoka](https://fonts.google.com/specimen/Fredoka) font (SIL Open Font License, `QuackieChan/Fonts/OFL-Fredoka.txt`), the Swift packages, and each downloadable model (shown next to it in the app).
+
+<div align="center">
+<br>
+<img src="docs/images/dance.gif" alt="A dancing duck" width="160">
+<br>
+<sub>Made with bread by Patrick Jakobsen</sub>
+</div>

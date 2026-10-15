@@ -294,11 +294,15 @@ private struct DuckPage: View {
                     Text("Waddles about, flies up onto your windows and hops between them. Move a window and it falls off.")
                 }
                 Toggle(isOn: $settings.prefs.sounds) {
-                    Text("Sounds")
-                    Text("Quacks, a very real-sounding gun, and the click-clack of it being cocked.")
+                    Text("Sound effects")
+                    Text("The gun going off, the click-clack of it being cocked, quacks when you poke it, thuds and whooshes.")
+                }
+                Toggle(isOn: $settings.prefs.voiceOn) {
+                    Text("Voice")
+                    Text("A sound when it talks. Turn it off and it just shows its speech bubble; sound effects stay.")
                 }
                 VoicePicker()
-                    .disabled(!settings.prefs.sounds)
+                    .disabled(!settings.prefs.voiceOn)
             }
         }
         .formStyle(.grouped)
@@ -313,7 +317,7 @@ private struct VoicePicker: View {
         LabeledContent {
             HStack {
                 Picker("Voice", selection: $settings.prefs.voice) {
-                    ForEach(Voice.allCases) { Text($0.name).tag($0) }
+                    ForEach(Voice.allCases.filter { $0 != .off }) { Text($0.name).tag($0) }
                 }
                 .labelsHidden()
                 .fixedSize()
@@ -324,7 +328,7 @@ private struct VoicePicker: View {
                     .disabled(settings.prefs.voice == .off)
             }
         } label: {
-            Text("Voice")
+            Text("Sounds like")
             Text(settings.prefs.voice.detail)
         }
     }
