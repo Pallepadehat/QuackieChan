@@ -85,6 +85,12 @@ struct BrainTests {
         #expect(Minds.shorten("Short.", to: 170) == "Short.")
     }
 
+    @Test func knowsWhenYouAskAboutTheScreen() {
+        #expect(Minds.asksAboutScreen("What do you see?"))
+        #expect(Minds.asksAboutScreen("what do you think of this design"))
+        #expect(!Minds.asksAboutScreen("tell me a joke"))
+    }
+
     @Test func dropsThinking() {
         #expect(LocalBrain.withoutThinking("<think>hmm</think> Quack!") == "Quack!")
     }

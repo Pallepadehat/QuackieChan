@@ -68,9 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let prefs = settings.prefs
-        let mood = Feelings.shared.mood
-        let status = NSMenuItem(title: prefs.paused ? "\(prefs.duckName) is off duty"
-                                    : "\(prefs.duckName) is feeling \(mood.name.lowercased()) \(mood.emoji)",
+        let status = NSMenuItem(title: prefs.paused ? "\(prefs.duckName) is off duty" : "\(prefs.duckName) is watching 👀",
                                 action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)

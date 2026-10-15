@@ -3,7 +3,7 @@ import SwiftUI
 /// The settings window: a sidebar like System Settings, a live duck on every page that needs one.
 struct SettingsView: View {
     enum Page: String, CaseIterable, Identifiable {
-        case duck, personality, feelings, goals, music, brain, talk, hands, privacy, about
+        case duck, personality, goals, music, brain, talk, hands, privacy, about
 
         var id: String { rawValue }
 
@@ -11,7 +11,6 @@ struct SettingsView: View {
             switch self {
             case .duck: "Duck"
             case .personality: "Personality"
-            case .feelings: "Feelings"
             case .goals: "Goals"
             case .music: "Music"
             case .brain: "Brain"
@@ -26,7 +25,6 @@ struct SettingsView: View {
             switch self {
             case .duck: "bird.fill"
             case .personality: "theatermasks.fill"
-            case .feelings: "heart.fill"
             case .goals: "target"
             case .music: "music.note"
             case .brain: "brain.head.profile"
@@ -41,7 +39,6 @@ struct SettingsView: View {
             switch self {
             case .duck: .orange
             case .personality: .pink
-            case .feelings: .red
             case .goals: .green
             case .music: .purple
             case .brain: .indigo
@@ -53,7 +50,7 @@ struct SettingsView: View {
         }
 
         static let groups: [(String?, [Page])] = [
-            (nil, [.duck, .personality, .feelings]),
+            (nil, [.duck, .personality]),
             ("Keeping you honest", [.goals, .music]),
             ("Smarts", [.brain, .talk, .hands]),
             (nil, [.privacy, .about]),
@@ -83,7 +80,6 @@ struct SettingsView: View {
                 switch page ?? .duck {
                 case .duck: DuckPage()
                 case .personality: PersonalityPage()
-                case .feelings: FeelingsPage()
                 case .goals: GoalsPage()
                 case .music: MusicPage()
                 case .brain: BrainPage()
@@ -118,14 +114,12 @@ struct SettingsIcon: View {
 /// The duck at the top of the sidebar, with its name and how it feels.
 private struct SidebarHeader: View {
     let settings = Settings.shared
-    let feelings = Feelings.shared
-
     var body: some View {
         HStack(spacing: 10) {
             LiveDuck(mode: .idle, size: 46)
             VStack(alignment: .leading, spacing: 1) {
                 Text(settings.prefs.duckName).font(.headline).lineLimit(1)
-                Text("Feeling \(feelings.mood.name.lowercased()) \(feelings.mood.emoji)")
+                Text("\(settings.prefs.personality.emoji) \(settings.prefs.personality.name)")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -429,60 +423,6 @@ private struct PersonalityCard: View {
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(chosen ? Color.accentColor : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Feelings
-
-private struct FeelingsPage: View {
-    let feelings = Feelings.shared
-
-    var body: some View {
-        Form {
-            Section {
-                HeroCard {
-                    HStack(spacing: 18) {
-                        LiveDuck(mode: feelings.mood == .sleepy ? .sleep : feelings.mood == .hyped ? .dance : .idle,
-                                 size: 120, mood: feelings.mood)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(feelings.mood.emoji) \(feelings.mood.name)").font(.custom(Fonts.display, size: 28).weight(.bold))
-                            Text(moodBlurb).foregroundStyle(.secondary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-            }
-            Section("Right now") {
-                meter("Joy", feelings.joy, .yellow, "Music, praise, you keeping your goals.")
-                meter("Love", feelings.love, .pink, "Petting (hover over it), talking to it, being nice.")
-                meter("Anger", feelings.anger, .red, "Pokes, being thrown about, pulling windows out from under it. Firing the gun helps.")
-                meter("Energy", feelings.energy, .green, "Low at night. Naps and music top it up.")
-                meter("Boredom", feelings.boredom, .gray, "Creeps up when nothing happens. Play with it!")
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private var moodBlurb: String {
-        switch feelings.mood {
-        case .happy: "All is well in the pond."
-        case .loving: "Thinks you're the best. Hearts incoming."
-        case .grumpy: "Turns its back on you and sulks. Pet it, or let it shoot something."
-        case .sleepy: "Yawning and napping sooner. Let it rest."
-        case .bored: "Wants something to happen. Throw it, play music, talk to it."
-        case .hyped: "Bouncing off the walls. Probably wants to dance."
-        case .content: "Just vibing."
-        }
-    }
-
-    private func meter(_ title: String, _ value: Double, _ tint: Color, _ detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Gauge(value: value) { Text(title) } currentValueLabel: { Text("\(Int(value * 100))%").monospacedDigit() }
-                .tint(tint)
-            Text(detail).font(.caption).foregroundStyle(.secondary)
-        }
     }
 }
 
