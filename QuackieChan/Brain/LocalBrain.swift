@@ -46,13 +46,14 @@ actor LocalBrain {
         lastUsed = Date()
         let parameters = GenerateParameters(maxTokens: maxTokens, temperature: 0.9, topP: 0.95)
         // Qwen3 thinks out loud unless told not to; the duck should just talk.
+        // No resize here: the session's default squashes pictures into a 512 × 512 square first, which makes a
+        // wide screen unreadable. Each model's own processor sizes the picture properly, keeping its shape.
         let session = ChatSession(container, instructions: instructions, generateParameters: parameters,
-                                  additionalContext: ["enable_thinking": false])
+                                  processing: .init(resize: nil), additionalContext: ["enable_thinking": false])
         var input: UserInput.Image?
         if let image {
-            // Small is plenty to tell a shop from a spreadsheet, and much faster.
             let picture = CIImage(cgImage: image)
-            let scale = min(1, 768 / max(picture.extent.width, picture.extent.height))
+            let scale = min(1, 1280 / max(picture.extent.width, picture.extent.height))
             input = .ciImage(picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale)))
         }
         let reply = try await session.respond(to: prompt, image: input)

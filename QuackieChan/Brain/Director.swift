@@ -121,7 +121,9 @@ final class Director {
                 let glance = await Eyes.lookNow()
                 guard let answer = try await self.minds.answer(said, context: glance) else { return }
                 self.say(answer.say)
-                if !answer.deeds.isEmpty { self.perform(answer.deeds, quietly: true) }
+                // Small models sometimes talk about doing a thing and forget to do it.
+                let deeds = answer.deeds.isEmpty ? Paws.obviousRequest(in: said) : answer.deeds
+                if !deeds.isEmpty { self.perform(deeds, quietly: true) }
             } catch {
                 Log.brain.error("Couldn't answer: \(error.localizedDescription, privacy: .public)")
                 self.say(Lines.pick(.dunno, self.prefs.personality))
@@ -140,11 +142,7 @@ final class Director {
     func perform(_ deeds: [Deed], quietly: Bool = false) {
         guard let deed = deeds.first else { return }
         let rest = Array(deeds.dropFirst())
-        let harmless: Bool = switch deed {
-        case .dance, .nap, .remind: true
-        default: false
-        }
-        guard harmless || prefs.hands else {
+        guard deed.isTrick || prefs.hands else {
             say(Lines.pick(.notAllowed, prefs.personality))
             return
         }
@@ -214,8 +212,35 @@ final class Director {
             }
             next()
         case .dance:
-            duck.set(.dancing)
-            after(14) { [weak self] in if self?.duck.activity == .dancing { self?.duck.set(.idle) } }
+            window.dance(.dancing, for: 14)
+            next()
+        case .bananas:
+            window.dance(.bananas, for: 14)
+            next()
+        case .shoot:
+            // Straight at you. It's a duck; it's harmless. Mostly.
+            duck.set(.aiming)
+            Sounds.shared.play(.cock)
+            after(0.9) { [weak self] in
+                guard let self else { return }
+                self.duck.bang()
+                Sounds.shared.play(.gunshot)
+                self.feelings.feel(.firedGun)
+                self.after(1.3) { [weak self] in if self?.duck.activity == .aiming { self?.duck.set(.idle) } }
+                next()
+            }
+        case .quack:
+            duck.quack()
+            Sounds.shared.play(.quack)
+            next()
+        case .fly:
+            window.flyAround()
+            next()
+        case .jump:
+            window.jump()
+            next()
+        case .comeHere:
+            window.comeToMouse()
             next()
         case .nap:
             duck.set(.sleeping)

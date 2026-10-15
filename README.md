@@ -108,6 +108,8 @@ It can **see your screen**, so you can ask what it thinks of what you're doing. 
 > **You:** what do you think of this design?<br>
 > **🦆:** The button's fine. The four fonts are a cry for help.
 
+Ask it to show off, any time: **"shoot me"**, **"go bananas"**, **"dance"**, **"fly"**, **"jump"**, **"come here"**, **"quack"**. Dare it and it might just do it on its own.
+
 And with **Hands** switched on (Settings → Hands), it can **do things on your Mac**:
 
 | Say | It does |

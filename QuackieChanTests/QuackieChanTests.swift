@@ -66,6 +66,11 @@ struct BrainTests {
         #expect(Minds.parseAnswer("Bread.").deeds.isEmpty)
     }
 
+    @Test func readsTricks() {
+        #expect(Minds.parseAnswer("You asked for it. Pew.\nDO: shoot").deeds == [.shoot])
+        #expect(Minds.parseAnswer("Watch this.\nDO: go bananas").deeds == [.bananas])
+    }
+
     @Test func readsPlainRepliesWithActions() {
         let answer = Minds.parseAnswer("Bye bye, Spotify. It had a good run.\nDO: quit Spotify\nDO: volume 30")
         #expect(answer.say == "Bye bye, Spotify. It had a good run.")
@@ -110,6 +115,16 @@ struct CommandTests {
         #expect(Paws.parse("press cmd+t") == [.press("cmd+t")])
         #expect(Paws.parse("Can you pause the music for me please?") == [.pause])
         #expect(Paws.parse("next song please") == [.next])
+        #expect(Paws.parse("Shoot me!") == [.shoot])
+        #expect(Paws.parse("go bananas") == [.bananas])
+        if case .quit = Paws.parse("shoot spotify")?.first {} else { Issue.record("\"shoot spotify\" should quit Spotify") }
+    }
+
+    @Test func catchesObviousRequests() {
+        #expect(Paws.obviousRequest(in: "Show me your best dance moves") == [.dance])
+        #expect(Paws.obviousRequest(in: "I dare you to shoot me") == [.shoot])
+        #expect(Paws.obviousRequest(in: "can you make it quieter in here?") == [.quieter])
+        #expect(Paws.obviousRequest(in: "how was your day?").isEmpty)
     }
 
     @Test func leavesConversationToTheBrain() {

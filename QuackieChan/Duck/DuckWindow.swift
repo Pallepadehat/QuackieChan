@@ -440,6 +440,45 @@ final class DuckWindow {
         }
     }
 
+    // MARK: Tricks you can ask for
+
+    /// Dances (or goes bananas) for a while, whatever's playing.
+    func dance(_ style: Duck.Activity, for seconds: TimeInterval) {
+        walkTarget = nil
+        duck.beat = 0.5
+        duck.set(style)
+        if style == .bananas { feelings.feel(.bananas) }
+        after(seconds) { [weak self] in if self?.duck.activity == style { self?.duck.set(.idle) } }
+    }
+
+    /// Flies to the top of some window, or back down to the floor if there isn't one.
+    func flyAround() {
+        if !flyToAWindow() { flyTo(CGPoint(x: feet.x + (duck.facingLeft ? -200 : 200), y: screen.visibleFrame.minY)) }
+    }
+
+    func jump() {
+        guard !airborne else { return }
+        duck.set(.idle)
+        soaring = false
+        airborne = true
+        velocity = CGVector(dx: duck.facingLeft ? -60 : 60, dy: 900)
+        duck.set(.flying)
+        Sounds.shared.play(.quack)
+    }
+
+    /// Comes over to where the mouse is: walks if it's along the floor, flies if it's up somewhere.
+    func comeToMouse() {
+        let mouse = NSEvent.mouseLocation
+        if abs(mouse.y - feet.y) < 120, perch == nil {
+            walkTarget = min(max(mouse.x, screen.visibleFrame.minX + 60), screen.visibleFrame.maxX - 60)
+        } else {
+            let floor = screen.visibleFrame.minY
+            let target = Desk.windows().first { $0.frame.minX < mouse.x && mouse.x < $0.frame.maxX && $0.frame.maxY < mouse.y + 200
+                && $0.frame.maxY < screen.visibleFrame.maxY - spriteHeight * 0.8 }
+            flyTo(CGPoint(x: mouse.x, y: target?.frame.maxY ?? floor))
+        }
+    }
+
     /// Picks the top of a visible window and flies there. Returns false if there's nowhere good to go.
     @discardableResult
     private func flyToAWindow() -> Bool {

@@ -11,7 +11,16 @@ nonisolated enum Deed: Equatable, Sendable {
     case press(String), type(String)
     case darkMode(Bool?)
     case remind(minutes: Int, about: String)
-    case dance, nap
+    /// Things the duck does itself, no permission needed.
+    case dance, nap, shoot, quack, fly, jump, bananas, comeHere
+
+    /// Things the duck does with its own body, not your Mac.
+    var isTrick: Bool {
+        switch self {
+        case .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .remind: true
+        default: false
+        }
+    }
 
     /// Things you'd want to be asked about first.
     var isDrastic: Bool {
@@ -82,8 +91,14 @@ enum Paws {
         case "dark mode": return [.darkMode(true)]
         case "light mode": return [.darkMode(false)]
         case "toggle dark mode", "switch dark mode": return [.darkMode(nil)]
-        case "dance", "dance for me", "dans": return [.dance]
+        case "dance", "dance for me", "do a dance", "dans": return [.dance]
         case "sleep", "go to sleep", "take a nap", "nap", "sov": return [.nap]
+        case "shoot", "shoot me", "fire", "shoot at me", "pew", "pew pew", "bang", "shoot something", "skyd", "skyd mig": return [.shoot]
+        case "quack", "say quack", "kvæk", "rap": return [.quack]
+        case "fly", "fly around", "fly away", "fly somewhere", "flyv": return [.fly]
+        case "jump", "hop", "jump around", "hop op": return [.jump]
+        case "go bananas", "bananas", "go crazy", "lose it", "party", "flip me off", "middle finger", "gå amok": return [.bananas]
+        case "come here", "come", "come to me", "over here", "kom her": return [.comeHere]
         default: break
         }
 
@@ -110,6 +125,22 @@ enum Paws {
         if let keys = after(["press", "tryk på", "tryk"]) { return [.press(keys)] }
         if let words = after(["type", "skriv"]) { return [.type(words)] }
         return nil
+    }
+
+    /// What you obviously asked for, when the brain answered but forgot to act: only its own tricks and the
+    /// volume, never anything that could lose your work.
+    static func obviousRequest(in said: String) -> [Deed] {
+        let text = said.lowercased()
+        func mentions(_ words: [String]) -> Bool { words.contains(where: text.contains) }
+        if mentions(["bananas", "go crazy", "middle finger", "flip me off"]) { return [.bananas] }
+        if mentions(["dance", "dancing", "moves", "danse"]) { return [.dance] }
+        if mentions(["shoot", "pew", "your gun", "skyd"]) { return [.shoot] }
+        if mentions(["fly ", "fly!", "flying", "flyv"]) || text.hasSuffix("fly") { return [.fly] }
+        if mentions(["quack for me", "say quack", "quack!"]) { return [.quack] }
+        if mentions(["come here", "come over", "kom her"]) { return [.comeHere] }
+        if mentions(["quieter", "too loud", "volume down", "turn it down", "lower the volume", "skru ned"]) { return [.quieter] }
+        if mentions(["louder", "can't hear", "volume up", "turn it up", "skru op"]) { return [.louder] }
+        return []
     }
 
     private static func looksLikeWebsite(_ text: String) -> Bool {
@@ -207,7 +238,7 @@ enum Paws {
                 "tell application \"System Events\" to tell appearance preferences to set dark mode to \(value)")
             return result == nil ? Outcome(moment: .cantDoThat, failure: "macOS didn't let me. Allow Quackie Chan to control System Events.")
                 : Outcome(moment: .didIt)
-        case .remind, .dance, .nap:
+        case .remind, .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere:
             return Outcome(moment: .didIt)  // the director handles these itself
         }
     }

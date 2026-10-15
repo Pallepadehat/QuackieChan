@@ -103,8 +103,14 @@ final class Minds {
 
         var prompt = ""
         if let context {
-            prompt += "What's on their screen right now:\n\(Self.describe(context, withText: image == nil))\n"
-            if image != nil { prompt += "(The picture is their front window.)\n" }
+            // The text read off the screen goes in even with a picture: small models read printed words far
+            // better than pixels.
+            prompt += "What's on their screen right now:\n\(Self.describe(context, withText: true))\n"
+            if image != nil { prompt += "(The attached picture is their front window.)\n" }
+            if Self.asksAboutScreen(said) {
+                prompt += "They're asking about the screen: say which app it is and what's actually on it, quoting a few "
+                    + "real words or names from it, then give your opinion.\n"
+            }
             prompt += "\n"
         } else if Self.asksAboutScreen(said) {
             prompt += "(You can't see their screen right now: seeing is off in Settings → Privacy. Say so if they ask what you see.)\n\n"
@@ -210,12 +216,18 @@ final class Minds {
         DO: volume 30 | DO: louder | DO: quieter | DO: mute | DO: search for duck facts
         DO: close tab | DO: new tab | DO: reload | DO: close window | DO: minimize | DO: fullscreen
         DO: press cmd+t | DO: type hello | DO: dark mode | DO: light mode
-        DO: remind me in 10 minutes to stretch | DO: dance | DO: nap
-        Never do things they didn't ask for.
+        DO: remind me in 10 minutes to stretch
+        Things you can do yourself, any time it fits (no permission needed):
+        DO: shoot (fire your tiny gun at them) | DO: quack | DO: dance | DO: go bananas | DO: fly | DO: jump
+        DO: come here | DO: nap
+        Never do things on their Mac they didn't ask for.
 
-        Example:
+        Examples:
         Bye bye, Spotify. It had a good run.
         DO: quit Spotify
+
+        You asked for it. Pew.
+        DO: shoot
         """
     }
 
@@ -346,6 +358,11 @@ final class Minds {
             return .remind(minutes: minutes, about: target.isEmpty ? "the thing" : target)
         case "dance": return .dance
         case "nap": return .nap
+        case "shoot": return target.isEmpty ? .shoot : .quit(target)
+        case "quack": return .quack
+        case "fly": return .fly
+        case "jump": return .jump
+        case "bananas": return .bananas
         default: return nil
         }
     }
