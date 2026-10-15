@@ -21,6 +21,10 @@ It will pull a gun on you.
 
 **[Get it running](#-get-it-running)** · **[What it does](#-what-it-does)** · **[Talk to it](#-talk-to-it)** · **[The brain](#-the-brain)** · **[Privacy](#-privacy)** · **[Contributing](#-contributing)**
 
+<br>
+
+<a href="https://www.buymeacoffee.com/pjtoolkit"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=pjtoolkit&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="42"></a>
+
 </div>
 
 <br>
