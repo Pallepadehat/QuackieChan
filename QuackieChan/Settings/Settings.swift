@@ -31,7 +31,9 @@ struct Prefs: Codable, Equatable {
     /// What you talk to the duck with. Nil uses the seeing brain.
     var chatModelID: String?
     /// The sound it makes while it talks.
-    var voice = Voice.gibberish
+    var voice = Voice.quacks
+    /// Set once the real recorded quack became the default voice, so older settings switch over once.
+    var hasRealQuack = false
     /// ⌃⌥Q opens the talk box and listens.
     var talkShortcut = true
     /// Let the duck do things on the Mac when you ask: open, quit and hide apps, music, volume, tabs, shortcuts.
@@ -72,7 +74,7 @@ enum DuckSize: String, Codable, CaseIterable, Identifiable {
 
 /// How the duck sounds when it talks. All synthesised, like animals in a video game.
 nonisolated enum Voice: String, Codable, CaseIterable, Identifiable, Sendable {
-    case gibberish, quacks, chirps, mumble, robot, off
+    case quacks, gibberish, chirps, mumble, robot, off
 
     var id: String { rawValue }
 
@@ -90,7 +92,7 @@ nonisolated enum Voice: String, Codable, CaseIterable, Identifiable, Sendable {
     var detail: String {
         switch self {
         case .gibberish: "Blippy video game babble."
-        case .quacks: "A little quack for every word. Very duck."
+        case .quacks: "A real quack for every word. Very duck."
         case .chirps: "Bright, birdy chirps."
         case .mumble: "Low, cosy mumbling, like a tiny Sim."
         case .robot: "Beep boop. A duck from the future."
@@ -149,6 +151,10 @@ final class Settings {
 
     private init() {
         prefs = Self.load()
+        if !prefs.hasRealQuack {
+            prefs.hasRealQuack = true
+            prefs.voice = .quacks
+        }
     }
 
     /// Reads the saved settings over the defaults, so settings added in later versions get their default.

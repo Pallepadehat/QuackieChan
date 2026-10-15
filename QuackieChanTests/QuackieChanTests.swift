@@ -109,3 +109,18 @@ struct LineTests {
         #expect(Lines.about(app: "Some Random App", bundleID: "com.example.random", .sassy) == nil)
     }
 }
+
+struct SoundTests {
+    @Test func loadsTheRealQuackWithoutTheSilence() throws {
+        let quack = try #require(Synth.recorded)
+        let seconds = Double(quack.count) / Synth.rate
+        #expect(seconds > 0.12 && seconds < 0.4)
+        #expect((quack.map(abs).max() ?? 0) <= 0.81)
+    }
+
+    @Test func pitchesQuacksUpAndDown() throws {
+        let quack = try #require(Synth.recorded)
+        #expect(Synth.resample(quack, by: 1.25).count < quack.count)
+        #expect(Synth.resample(quack, by: 0.8).count > quack.count)
+    }
+}

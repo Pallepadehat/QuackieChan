@@ -22,8 +22,9 @@ final class Sounds {
 
     func play(_ effect: Effect) {
         guard Settings.shared.prefs.sounds else { return }
-        let buffer = cache[effect] ?? Synth.make(effect, format: format)
-        cache[effect] = buffer
+        // Quacks vary every time; everything else is made once and kept.
+        let buffer = effect == .quack ? Synth.make(effect, format: format) : (cache[effect] ?? Synth.make(effect, format: format))
+        if effect != .quack { cache[effect] = buffer }
         schedule(buffer)
     }
 
@@ -61,7 +62,7 @@ nonisolated enum Synth {
         switch effect {
         case .gunshot: return buffer(gunshot(), format)
         case .cock: return buffer(cock(), format)
-        case .quack: return buffer(quack(pitch: .random(in: 0.9...1.15)), format)
+        case .quack: return buffer(realQuack(pitch: .random(in: 0.92...1.12)) ?? quack(pitch: .random(in: 0.9...1.15)), format)
         case .tick: return buffer(tone(1650, length: 0.035, decay: 0.012, volume: 0.35), format)
         case .spared: return buffer(tone(784, length: 0.12, decay: 0.08, volume: 0.3) + tone(1175, length: 0.3, decay: 0.12, volume: 0.3), format)
         case .pop: return buffer(sweep(from: 900, to: 300, length: 0.07, volume: 0.4), format)
@@ -141,9 +142,12 @@ nonisolated enum Synth {
                             vowel: [800, 1150, 1500, 2200, 950].randomElement()!, square: true) + silence(0.022)
             }
         case .quacks:
-            for index in 0..<min(7, words) {
-                let rise: Float = asking && index == min(7, words) - 1 ? 1.25 : 1
-                out += quack(pitch: pitch * .random(in: 0.9...1.2) * rise).map { $0 * 0.8 } + silence(.random(in: 0.04...0.09))
+            // A real quack per word (up to five), each pitched a little differently, the last one up for a question.
+            let count = min(5, words)
+            for index in 0..<count {
+                let rise: Float = asking && index == count - 1 ? 1.2 : 1
+                let quackPitch = pitch * .random(in: 0.9...1.15) * rise
+                out += (realQuack(pitch: quackPitch) ?? quack(pitch: quackPitch)) + silence(.random(in: 0.03...0.07))
             }
         case .chirps:
             let syllables = max(2, min(14, letters / 3))
@@ -183,6 +187,52 @@ nonisolated enum Synth {
             return wave * envelope
         }
         return bandpass(raw, center: vowel, q: 1.6).map { $0 * 0.5 }
+    }
+
+    // MARK: The recorded quack
+
+    /// QuackieChan/Sounds/quack.mp3, mono, with the silence around it trimmed off. Nil if it can't be read.
+    static let recorded: [Float]? = {
+        guard let url = Bundle.main.url(forResource: "quack", withExtension: "mp3"),
+              let file = try? AVAudioFile(forReading: url),
+              let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buffer)) != nil,
+              let channels = buffer.floatChannelData
+        else { return nil }
+        let frames = Int(buffer.frameLength), channelCount = Int(buffer.format.channelCount)
+        var mono = (0..<frames).map { i in (0..<channelCount).reduce(Float(0)) { $0 + channels[$1][i] } / Float(channelCount) }
+        // Resample to our rate if the file isn't 44.1 kHz.
+        if file.processingFormat.sampleRate != rate {
+            mono = resample(mono, by: Float(file.processingFormat.sampleRate / rate))
+        }
+        // Trim the quiet before and after, keeping a few milliseconds so it doesn't click.
+        let loud = mono.indices.filter { abs(mono[$0]) > 0.02 }
+        guard let first = loud.first, let last = loud.last else { return nil }
+        let pad = Int(rate * 0.005)
+        var trimmed = Array(mono[max(0, first - pad)...min(mono.count - 1, last + pad)])
+        let peak = trimmed.map(abs).max() ?? 1
+        trimmed = trimmed.map { $0 / peak * 0.8 }
+        // Fade the last 20 ms out.
+        let fade = min(trimmed.count, Int(rate * 0.02))
+        for i in 0..<fade { trimmed[trimmed.count - fade + i] *= Float(fade - i) / Float(fade) }
+        return trimmed
+    }()
+
+    /// The recorded quack at another pitch (by playing it faster or slower, like a tape).
+    static func realQuack(pitch: Float) -> [Float]? {
+        recorded.map { resample($0, by: pitch) }
+    }
+
+    /// Plays `samples` `factor` times faster with linear interpolation: higher and shorter above 1.
+    static func resample(_ samples: [Float], by factor: Float) -> [Float] {
+        guard factor > 0, samples.count > 1, abs(factor - 1) > 0.001 else { return samples }
+        let count = Int(Float(samples.count - 1) / factor)
+        return (0..<count).map { i in
+            let position = Float(i) * factor
+            let index = Int(position)
+            let fraction = position - Float(index)
+            return samples[index] * (1 - fraction) + samples[min(index + 1, samples.count - 1)] * fraction
+        }
     }
 
     // MARK: Building blocks
