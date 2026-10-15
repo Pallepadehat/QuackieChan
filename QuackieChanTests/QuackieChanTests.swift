@@ -1,3 +1,4 @@
+import CoreGraphics
 import Testing
 @testable import QuackieChan
 
@@ -190,5 +191,28 @@ struct SoundTests {
         let quack = try #require(Synth.recorded)
         #expect(Synth.resample(quack, by: 1.25).count < quack.count)
         #expect(Synth.resample(quack, by: 0.8).count > quack.count)
+    }
+}
+
+@MainActor
+struct SeeingTests {
+    @Test func keepsRowsTogether() {
+        // Vision boxes: normalised, y up. Two on one row (a label and a price), one below.
+        let text = Eyes.layout([
+            (CGRect(x: 0.7, y: 0.8, width: 0.1, height: 0.03), "$8,000"),
+            (CGRect(x: 0.1, y: 0.8, width: 0.2, height: 0.03), "Monkey Chair"),
+            (CGRect(x: 0.1, y: 0.5, width: 0.3, height: 0.03), "Add to cart"),
+        ])
+        #expect(text == "Monkey Chair  |  $8,000\nAdd to cart")
+    }
+
+    @Test func personalInstructionsReachTheBrain() {
+        var prefs = Prefs()
+        prefs.customInstructions = "Always answer in Danish."
+        prefs.aboutYou = "I have a cat called Pickle."
+        let instructions = Minds.chatInstructions(prefs, mood: .content)
+        #expect(instructions.contains("Always answer in Danish."))
+        #expect(instructions.contains("Pickle"))
+        #expect(!Minds.chatInstructions(Prefs(), mood: .content).contains("own instructions"))
     }
 }

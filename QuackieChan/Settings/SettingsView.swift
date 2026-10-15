@@ -304,8 +304,32 @@ private struct DuckPage: View {
                 VoicePicker()
                     .disabled(!settings.prefs.voiceOn)
             }
+            StartAtLogin()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The switch for starting Quackie Chan when you log in.
+private struct StartAtLogin: View {
+    let login = LoginItem.shared
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(get: { login.isOn }, set: { login.set($0) })) {
+                Text("Start when you log in")
+                Text("The duck drops onto your screen every time you start your Mac.")
+            }
+            if login.needsApproval {
+                LabeledContent("macOS wants you to allow it first") {
+                    Button("Open Login Items…") { login.openSettings() }
+                }
+            }
+            if let problem = login.problem {
+                Text(problem).font(.caption).foregroundStyle(.red)
+            }
+        }
+        .onAppear { login.refresh() }
     }
 }
 
@@ -395,8 +419,83 @@ private struct PersonalityPage: View {
             } footer: {
                 Text("Chattiness is how often it talks on its own. It always reacts when something actually happens.")
             }
+            MakeItYours()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Custom instructions: how the duck should answer, and what it should know about you.
+private struct MakeItYours: View {
+    @Bindable var settings = Settings.shared
+
+    private static let ideas = [
+        ("🇩🇰", "Always answer in Danish."),
+        ("🧒", "Explain things like I'm five."),
+        ("🤓", "Be nerdy and precise. Give real numbers and names."),
+        ("🧘", "Be calm and kind, never threatening."),
+        ("🤬", "Swear like a sailor."),
+        ("🏴‍☠️", "Talk like a pirate."),
+        ("✂️", "No jokes when I ask a real question. Just answer."),
+        ("💡", "End every answer with one practical tip."),
+    ]
+
+    var body: some View {
+        Section {
+            Picker("Answers", selection: $settings.prefs.answerLength) {
+                ForEach(AnswerLength.allCases) { Text($0.name).tag($0) }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("How should it answer?")
+                TextEditor(text: $settings.prefs.customInstructions)
+                    .font(.body)
+                    .frame(minHeight: 70)
+                    .scrollContentBackground(.hidden)
+                    .padding(6)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(alignment: .topLeading) {
+                        if settings.prefs.customInstructions.isEmpty {
+                            Text("Like “Always answer in Danish, be brutally honest, and keep the duck puns coming.”")
+                                .foregroundStyle(.tertiary).padding(11).allowsHitTesting(false)
+                        }
+                    }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Self.ideas, id: \.1) { emoji, idea in
+                            Button("\(emoji) \(idea)") { add(idea) }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                                .controlSize(.small)
+                                .disabled(settings.prefs.customInstructions.contains(idea))
+                        }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("What should it know about you?")
+                TextEditor(text: $settings.prefs.aboutYou)
+                    .font(.body)
+                    .frame(minHeight: 50)
+                    .scrollContentBackground(.hidden)
+                    .padding(6)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(alignment: .topLeading) {
+                        if settings.prefs.aboutYou.isEmpty {
+                            Text("Like “I'm a designer in Copenhagen, I have a cat called Pickle, and I'm learning Swift.”")
+                                .foregroundStyle(.tertiary).padding(11).allowsHitTesting(false)
+                        }
+                    }
+            }
+        } header: {
+            Text("Make it yours")
+        } footer: {
+            Text("Its AI brain follows these in every chat and comment, over the personality's usual style. Kept on your Mac.")
+        }
+    }
+
+    private func add(_ idea: String) {
+        let current = settings.prefs.customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        settings.prefs.customInstructions = current.isEmpty ? idea : current + " " + idea
     }
 }
 
@@ -600,7 +699,7 @@ private struct BrainPage: View {
                 Picker("Talking brain", selection: $settings.prefs.chatModelID) {
                     Text("Same as the seeing brain").tag(String?.none)
                     Text("Apple Intelligence").tag(Optional(appleBrainID)).disabled(!AppleBrain.isAvailable)
-                    ForEach(BrainModel.all) { model in
+                    ForEach(BrainModel.vision + BrainModel.chat) { model in
                         Text(model.name).tag(Optional(model.id)).disabled(!library.isInstalled(model))
                     }
                 }
@@ -652,9 +751,20 @@ private struct ModelRow: View {
             SettingsIcon(symbol: model.kind == .vision ? "eye.fill" : "text.bubble.fill",
                          tint: model.kind == .vision ? .indigo : .blue, size: 32)
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.name).fontWeight(.medium)
+                HStack(spacing: 6) {
+                    Text(model.name).fontWeight(.medium)
+                    if let badge = model.badge {
+                        Text(badge).font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color.accentColor.opacity(0.15), in: Capsule())
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
                 Text(model.detail).font(.caption).foregroundStyle(.secondary)
-                Text("\(model.sizeText) · \(model.license)").font(.caption2).foregroundStyle(.tertiary)
+                Text("\(model.sizeText) · \(model.license) · \(model.memory) GB+ memory").font(.caption2).foregroundStyle(.tertiary)
+                if !model.fits {
+                    Text("This Mac may be short on memory for it.").font(.caption).foregroundStyle(.orange)
+                }
                 if case .failed(let message) = library.status(of: model) {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
@@ -679,7 +789,10 @@ private struct ModelRow: View {
                     Label("In use", systemImage: "checkmark.circle.fill").foregroundStyle(.green).labelStyle(.titleAndIcon)
                 } else {
                     Button("Use") {
-                        if model.kind == .vision { settings.prefs.brainModelID = model.id } else { settings.prefs.chatModelID = model.id }
+                        switch model.kind {
+                        case .vision: settings.prefs.brainModelID = model.id
+                        case .chat: settings.prefs.chatModelID = model.id
+                        }
                     }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)

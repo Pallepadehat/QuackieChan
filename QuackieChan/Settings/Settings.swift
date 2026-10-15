@@ -47,6 +47,14 @@ struct Prefs: Codable, Equatable {
     /// Ask before quitting apps, closing things, pressing keys or typing.
     var askFirst = true
     var keepBrainLoaded = false
+
+    /// Your own words on how the duck should answer, like "Always answer in Danish" or "Explain like I'm five".
+    /// Its brain follows these over its defaults.
+    var customInstructions = ""
+    /// What the duck should know about you, like "I'm a nurse on night shifts" or "I'm learning Swift".
+    var aboutYou = ""
+    var answerLength = AnswerLength.normal
+
     /// What happens when the gun countdown runs out.
     var enforcement = Enforcement.threaten
     var ignoredApps: [String] = Prefs.privateApps
@@ -117,6 +125,47 @@ enum Enforcement: String, Codable, CaseIterable, Identifiable {
         case .threaten: "Nothing, it's an empty threat (BANG!)"
         case .hide: "Hide the app"
         case .close: "Peck the tab or window closed"
+        }
+    }
+}
+
+/// How long its answers are.
+enum AnswerLength: String, Codable, CaseIterable, Identifiable {
+    case short, normal, long
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .short: "Short and snappy"
+        case .normal: "A few sentences"
+        case .long: "Detailed"
+        }
+    }
+
+    /// For the instructions: "one to three short sentences, at most 45 words".
+    var rule: String {
+        switch self {
+        case .short: "one short sentence, at most 20 words"
+        case .normal: "one to three short sentences, at most 45 words"
+        case .long: "four to six sentences, at most 65 words, packed with real detail"
+        }
+    }
+
+    var maxTokens: Int {
+        switch self {
+        case .short: 120
+        case .normal: 240
+        case .long: 320
+        }
+    }
+
+    /// How much the speech bubble shows. Its panel is a fixed size, so even detailed answers stay under about 13 lines.
+    var bubbleLimit: Int {
+        switch self {
+        case .short: 140
+        case .normal: 230
+        case .long: 380
         }
     }
 }

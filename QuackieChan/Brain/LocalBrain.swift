@@ -10,6 +10,7 @@ import Foundation
 actor LocalBrain {
     private var container: ModelContainer?
     private var loadedFolder: URL?
+    private var loadedModel: BrainModel?
     private var lastUsed = Date()
 
     func load(_ model: BrainModel) async throws {
@@ -27,11 +28,13 @@ actor LocalBrain {
                 from: NoDownloads(), using: TokenizerFiles(), configuration: configuration)
         }
         loadedFolder = folder
+        loadedModel = model
     }
 
     func unload() {
         container = nil
         loadedFolder = nil
+        loadedModel = nil
         Memory.clearCache()
     }
 
@@ -40,23 +43,25 @@ actor LocalBrain {
         if container != nil, Date().timeIntervalSince(lastUsed) > seconds { unload() }
     }
 
-    /// Writes a reply to `prompt`, looking at `image` if there is one and the model can see.
-    func write(instructions: String, prompt: String, image: CGImage?, maxTokens: Int) async throws -> String {
+    /// Writes a reply to `prompt`, looking at `images` if there are any and the model can see. The first picture
+    /// is the main one; a second is a close-up.
+    func write(instructions: String, prompt: String, images: [CGImage], maxTokens: Int) async throws -> String {
         guard let container else { throw CocoaError(.featureUnsupported) }
         lastUsed = Date()
         let parameters = GenerateParameters(maxTokens: maxTokens, temperature: 0.9, topP: 0.95)
         // Qwen3 thinks out loud unless told not to; the duck should just talk.
         // No resize here: the session's default squashes pictures into a 512 × 512 square first, which makes a
-        // wide screen unreadable. Each model's own processor sizes the picture properly, keeping its shape.
+        // wide screen unreadable. Each model's own processor sizes the picture properly, keeping its shape, up to
+        // the model's pixel budget (bigger than the processor's default, so small text stays readable).
         let session = ChatSession(container, instructions: instructions, generateParameters: parameters,
-                                  processing: .init(resize: nil), additionalContext: ["enable_thinking": false])
-        var input: UserInput.Image?
-        if let image {
+                                  processing: .init(resize: nil, maxPixels: loadedModel?.pixels),
+                                  additionalContext: ["enable_thinking": false])
+        let pictures = images.map { image -> UserInput.Image in
             let picture = CIImage(cgImage: image)
-            let scale = min(1, 1280 / max(picture.extent.width, picture.extent.height))
-            input = .ciImage(picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale)))
+            let scale = min(1, 1920 / max(picture.extent.width, picture.extent.height))
+            return .ciImage(picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale)))
         }
-        let reply = try await session.respond(to: prompt, image: input)
+        let reply = try await session.respond(to: prompt, images: pictures, videos: [], audios: [])
         lastUsed = Date()
         return Self.withoutThinking(reply)
     }
