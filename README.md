@@ -14,12 +14,13 @@ It will pull a gun on you.
 [![Swift](https://img.shields.io/badge/Swift-SwiftUI-F05138?logo=swift&logoColor=white)](#-contributing)
 [![License: MIT](https://img.shields.io/badge/license-MIT-8E532B)](LICENSE)
 [![CI](https://github.com/Pallepadehat/QuackieChan/actions/workflows/ci.yml/badge.svg)](https://github.com/Pallepadehat/QuackieChan/actions/workflows/ci.yml)
+[![Website](https://img.shields.io/badge/website-quackie--chan.vercel.app-0071e3)](https://quackie-chan.vercel.app)
 
 <br>
 
 <img src="docs/images/gun.gif" alt="The duck pointing a pistol at you: Or else." width="260"> <img src="docs/images/bananas.gif" alt="The duck going bananas to music, sunglasses on, middle fingers up" width="260"> <img src="docs/images/peck.gif" alt="The duck pecking a tab closed: No Instagram for you!" width="260">
 
-**[Get it running](#-get-it-running)** · **[What it does](#-what-it-does)** · **[Talk to it](#-talk-to-it)** · **[The brain](#-the-brain)** · **[Privacy](#-privacy)** · **[Contributing](#-contributing)**
+**[Website](https://quackie-chan.vercel.app)** · **[Get it running](#-get-it-running)** · **[What it does](#-what-it-does)** · **[Talk to it](#-talk-to-it)** · **[The brain](#-the-brain)** · **[Privacy](#-privacy)** · **[Contributing](#-contributing)**
 
 <br>
 
