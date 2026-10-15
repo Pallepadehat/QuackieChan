@@ -118,14 +118,7 @@ final class Director {
             }
             do {
                 // A fresh look at what you're looking at right now, so it can talk about it.
-                var glance = await Eyes.quickLook()
-                if var looked = glance, self.prefs.canSee, Eyes.canRecordScreen,
-                   !self.prefs.ignoredApps.contains(looked.bundleID) {
-                    await Eyes.lookCloser(at: &looked)
-                    glance = looked
-                }
-                // Apps on the never-look list stay private, even when you ask.
-                if let looked = glance, self.prefs.ignoredApps.contains(looked.bundleID) { glance = nil }
+                let glance = await Eyes.lookNow()
                 guard let answer = try await self.minds.answer(said, context: glance) else { return }
                 self.say(answer.say)
                 if !answer.deeds.isEmpty { self.perform(answer.deeds, quietly: true) }

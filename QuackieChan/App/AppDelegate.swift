@@ -52,14 +52,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     line = "(knew it) " + known
                 } else {
                     do {
-                        let answer = try await Minds.shared.answer(question, context: nil)
+                        let glance = await Eyes.lookNow()
+                        print("(looked at \(glance?.appName ?? "nothing"), picture: \(glance?.image != nil), text: \(glance?.text?.count ?? 0) characters)")
+                        fflush(stdout)
+                        let answer = try await Minds.shared.answer(question, context: glance)
                         line = "\(answer?.say ?? "(no brain)") \(answer?.deeds ?? [])"
                     } catch {
                         line = "(error) \(error)"
                     }
                 }
                 print("[\(String(format: "%.1f", Date().timeIntervalSince(started)))s] \(line)")
-                exit(0)
+                fflush(stdout)
+                _exit(0)  // skips MLX's GPU teardown, which doesn't like being cut short
             }
             return
         }

@@ -61,15 +61,32 @@ enum Eyes {
 
     /// The quick part: which app, and which page if it's a browser.
     static func quickLook() async -> Glance? {
-        guard let app = NSWorkspace.shared.frontmostApplication, let bundleID = app.bundleIdentifier,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier
-        else { return nil }
+        guard let app = frontApp(), let bundleID = app.bundleIdentifier else { return nil }
         var glance = Glance(appName: app.localizedName ?? bundleID, bundleID: bundleID, pid: app.processIdentifier)
         if let page = await Browser.currentPage(bundleID: bundleID) {
             glance.url = page.url
             glance.windowTitle = page.title
         }
         return glance
+    }
+
+    /// Everything the duck can see right now, for answering you: the front app and page, and (if seeing is on
+    /// and allowed, and the app isn't on the never-look list) a picture and the text on it.
+    @MainActor
+    static func lookNow() async -> Glance? {
+        let prefs = Settings.shared.prefs
+        guard var glance = await quickLook(), !prefs.ignoredApps.contains(glance.bundleID) else { return nil }
+        if prefs.canSee, canRecordScreen { await lookCloser(at: &glance) }
+        return glance
+    }
+
+    /// The app you're using. If that's Quackie Chan itself (its settings, or you just clicked the duck), it's the
+    /// app whose window is on top underneath, which is what you'd mean by "what do you see?".
+    static func frontApp() -> NSRunningApplication? {
+        let me = ProcessInfo.processInfo.processIdentifier
+        if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != me { return app }
+        guard let window = Desk.windows().first else { return nil }
+        return NSRunningApplication(processIdentifier: window.pid)
     }
 
     /// The slow part: a picture of the front window and the text on it. Needs Screen Recording.

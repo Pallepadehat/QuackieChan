@@ -281,7 +281,7 @@ enum Paws {
     // MARK: Browser
 
     private static func browser(_ deed: Deed) async -> Outcome {
-        guard let app = NSWorkspace.shared.frontmostApplication, let id = app.bundleIdentifier, Browser.isBrowser(id) else {
+        guard let app = Eyes.frontApp(), let id = app.bundleIdentifier, Browser.isBrowser(id) else {
             // Not a browser in front: the keyboard shortcut does the same thing.
             let keys = deed == .closeTab ? "cmd+w" : deed == .newTab ? "cmd+t" : "cmd+r"
             guard Hands.canPressButtons, (try? Keyboard.press(keys)) != nil else { return Outcome(moment: .cantDoThat) }
@@ -300,7 +300,7 @@ enum Paws {
     // MARK: Accessibility
 
     private static func frontWindow() -> AXUIElement? {
-        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier else { return nil }
+        guard let pid = Eyes.frontApp()?.processIdentifier else { return nil }
         var window: CFTypeRef?
         guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute as CFString, &window) == .success,
               let window else { return nil }

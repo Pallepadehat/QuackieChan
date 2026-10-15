@@ -372,7 +372,6 @@ final class Duck {
                 next.wing = half ? .up : .rest
                 next.legs = .stepA
             default:
-                if !half { facingLeft = count == 6 }
                 next.wing = .up
                 next.legs = .stepB
             }
@@ -389,7 +388,6 @@ final class Duck {
             next.headX = half ? 1 : -1
             next.bodyY = half ? 1 : 0
             next.legs = count % 2 == 0 ? .stepA : .stepB
-            if count % 4 == 3 && !half { facingLeft.toggle() }
             onEachBeat(t) { _ in spawn([.note, .fire, .sparkle, .note].randomElement()!) }
         case .pecking:
             let down = Int(t / 0.16) % 2 == 0
@@ -407,6 +405,17 @@ final class Duck {
             next.beakOpen = true
             next.eyes = .blink
             next.headY = -1
+        }
+        // Dances turn around exactly once, on the beat, when the lean is back at zero, so the turn is seamless.
+        // (Setting this every frame instead of toggling is what keeps it from spinning.)
+        switch activity {
+        case .dancing:
+            let count = Int(t / beat) % 8
+            facingLeft = count == 6 || count == 7
+        case .bananas:
+            facingLeft = (Int(t / beat) / 4) % 2 == 1
+        default:
+            break
         }
         if talking { next.beakOpen = true }
         if pose != next { pose = next }

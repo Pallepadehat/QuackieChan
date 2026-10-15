@@ -23,8 +23,7 @@ enum Desk {
 
     /// The front app's frontmost normal window.
     static func frontWindow() -> Window? {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+        guard let app = Eyes.frontApp(),
               let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]]
         else { return nil }

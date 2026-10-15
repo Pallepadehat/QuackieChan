@@ -38,7 +38,7 @@ enum Music {
         guard soundIsPlaying else { return nil }
         if let song = await appPlaying() { return song }
         // A music site in the front browser tab, while sound is playing.
-        if let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier, Browser.isBrowser(app),
+        if let app = Eyes.frontApp()?.bundleIdentifier, Browser.isBrowser(app),
            let page = await Browser.currentPage(bundleID: app),
            let host = URL(string: page.url)?.host(), webPlayers.contains(where: host.hasSuffix) {
             let title = page.title.components(separatedBy: " - ").first ?? page.title
