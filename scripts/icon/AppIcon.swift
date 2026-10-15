@@ -35,6 +35,7 @@ struct AppIconMaker {
 
         try write(lineup(), to: images.appendingPathComponent("ducks.png"))
         try writeAnimations(to: images)
+        try write(socialPreview(), to: images.appendingPathComponent("social-preview.png"))
         try write(poses(), to: images.appendingPathComponent("poses.png"))
         try write(icon(pixels: 512), to: images.appendingPathComponent("icon.png"))
     }
@@ -102,6 +103,46 @@ struct AppIconMaker {
             context.saveGState()
             context.translateBy(x: CGFloat(8 * pixel + index * cell), y: CGFloat(4 * pixel))
             DuckArt.draw(skin: skin, pose: pose, in: context, scale: CGFloat(pixel))
+            context.restoreGState()
+        }
+        return context.makeImage()!
+    }
+
+    /// The 1280 × 640 card GitHub shows when the repo is shared: the name, the pitch, and three ducks.
+    static func socialPreview() -> CGImage {
+        let width = 1280, height = 640
+        let context = makeContext(width: width, height: height)
+        let colors = [RGB(0x2B3A67).cgColor, RGB(0x1E2238).cgColor] as CFArray
+        let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB), colors: colors, locations: [0, 1])!
+        context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: CGFloat(height)), end: .zero, options: [])
+        context.setFillColor(RGB(0x2B3456).cgColor)
+        context.fill(CGRect(x: 80, y: 96, width: width - 160, height: 6))
+
+        func text(_ string: String, size: CGFloat, weight: CTFontUIFontType, color: CGColor, at point: CGPoint) {
+            let font = CTFontCreateUIFontForLanguage(weight, size, nil)!
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: string, attributes: [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String): color,
+            ]))
+            context.textPosition = point
+            CTLineDraw(line, context)
+        }
+        text("Quackie Chan", size: 96, weight: .emphasizedSystem, color: CGColor(gray: 1, alpha: 1), at: CGPoint(x: 80, y: 470))
+        text("A tiny pixel duck that lives on your Mac", size: 38, weight: .system, color: RGB(0xE9DAC0).cgColor, at: CGPoint(x: 84, y: 405))
+        text("and keeps you honest.", size: 38, weight: .system, color: RGB(0xE9DAC0).cgColor, at: CGPoint(x: 84, y: 358))
+        text("Sees your screen · talks · dances · 100% on-device AI", size: 24, weight: .system,
+             color: RGB(0x8E9BC4).cgColor, at: CGPoint(x: 84, y: 300))
+
+        let pixel: CGFloat = 4.6
+        let ducks: [(DuckSkin, Pose, CGFloat)] = [
+            (DuckSkin.with(id: "don"), Pose(eyes: .angry, wing: .forward, gun: true), 700),
+            (DuckSkin.with(id: "bill"), Pose(eyes: .happy, beakOpen: true, legs: .stepA, dealWithIt: true, fingers: true, pump: 1), 975),
+        ]
+        context.setShouldAntialias(false)
+        for (skin, pose, x) in ducks {
+            context.saveGState()
+            context.translateBy(x: x, y: 100)
+            DuckArt.draw(skin: skin, pose: pose, in: context, scale: pixel)
             context.restoreGState()
         }
         return context.makeImage()!
