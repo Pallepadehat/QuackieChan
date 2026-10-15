@@ -23,7 +23,7 @@ It will pull a gun on you.
 
 <br>
 
-<a href="https://www.buymeacoffee.com/pjtoolkit"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=pjtoolkit&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="42"></a>
+<a href="https://buymeacoffee.com/patrickjakobsen"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=patrickjakobsen&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="42"></a>
 
 </div>
 
