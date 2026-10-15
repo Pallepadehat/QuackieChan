@@ -147,6 +147,9 @@ Either can be **Apple Intelligence** (built in, nothing to download) or a model 
 | --- | --- | :---: | --- |
 | [LFM2.5-VL 1.6B](https://huggingface.co/mlx-community/LFM2.5-VL-1.6B-4bit) | 1.5 GB | ✅ | Quick and light |
 | [Qwen3-VL 4B](https://huggingface.co/lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit) | 3.1 GB | ✅ | Reads screens well, funnier. 16 GB of memory recommended |
+| [Qwen3-VL 8B](https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit) | 5.8 GB | ✅ | Sharp eyes: small print, menus, dense pages. 16 GB |
+| [Qwen3.5 9B](https://huggingface.co/mlx-community/Qwen3.5-9B-4bit) | 6.0 GB | ✅ | **Best eyes** that fit most Macs. Sees and reasons. 16 GB |
+| [Qwen3.6 35B-A3B](https://huggingface.co/mlx-community/Qwen3.6-35B-A3B-4bit) | 20.4 GB | ✅ | Galaxy brain, still quick (3B active). 32 GB+ |
 | [Gemma 4 E2B](https://huggingface.co/mlx-community/gemma-4-e2b-it-4bit) | 3.6 GB | ✅ | Google's small multimodal model, smart all-rounder |
 | [Qwen3 4B Instruct](https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit) | 2.3 GB | — | The best talker |
 | [Qwen3 1.7B](https://huggingface.co/mlx-community/Qwen3-1.7B-4bit) | 1.0 GB | — | Tiny and quick |
@@ -155,6 +158,19 @@ Either can be **Apple Intelligence** (built in, nothing to download) or a model 
 To stay light, a model only loads when it's needed and leaves memory after three idle minutes. Models live in `~/Library/Application Support/Quackie Chan/Models`.
 
 </details>
+
+### How it sees
+
+When you ask about the screen, the duck takes a good look, not a glance:
+
+- 🔍 **A Retina-sharp picture** of your front window, and the bigger models get to see it in more detail (up to 2 megapixels).
+- 🎯 **A close-up of what you're pointing at**, as a second picture, so "what's this?" means *this*.
+- 📐 **Every word, laid out like the screen**: rows stay rows and columns stay columns, so tables and prices make sense.
+- ♿️ **What Accessibility knows**: the button under your pointer, the text you've selected, where typing goes, and the window's buttons and fields by name.
+
+### Make it yours
+
+Settings → Personality → **Make it yours**. Tell it how to answer ("always in Danish", "explain like I'm five", "talk like a pirate"), what to know about you, and how long its answers should be. Its brain follows your words over the personality's usual style.
 
 <br>
 

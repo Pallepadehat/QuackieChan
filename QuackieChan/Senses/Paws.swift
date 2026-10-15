@@ -388,10 +388,13 @@ enum Keyboard {
         var flags: CGEventFlags = []
         var label = ""
         var code: Int?
-        let parts = combo.lowercased().replacingOccurrences(of: " ", with: "").split(whereSeparator: { $0 == "+" || $0 == "-" })
-        for part in parts.map(String.init) {
+        let compact = combo.lowercased().replacingOccurrences(of: " ", with: "")
+        // "cmd+t", or "cmd-t"; a lone "-" or a trailing "+-" is the minus key itself.
+        var parts = compact.contains("+") ? compact.components(separatedBy: "+") : compact.count > 1 ? compact.components(separatedBy: "-") : [compact]
+        if compact.hasSuffix("++") { parts = parts.filter { !$0.isEmpty } + ["="] }
+        for part in parts where !part.isEmpty {
             switch part {
-            case "cmd", "command", "⌘": flags.insert(.maskCommand); label += "⌘"
+            case "cmd", "command", "⌘", "meta", "super", "win": flags.insert(.maskCommand); label += "⌘"
             case "shift", "⇧": flags.insert(.maskShift); label += "⇧"
             case "option", "opt", "alt", "⌥": flags.insert(.maskAlternate); label += "⌥"
             case "ctrl", "control", "⌃": flags.insert(.maskControl); label += "⌃"
@@ -418,6 +421,11 @@ enum Keyboard {
             "backspace": kVK_Delete, "escape": kVK_Escape, "esc": kVK_Escape, "left": kVK_LeftArrow, "right": kVK_RightArrow,
             "up": kVK_UpArrow, "down": kVK_DownArrow, "home": kVK_Home, "end": kVK_End, "pageup": kVK_PageUp,
             "pagedown": kVK_PageDown, ",": kVK_ANSI_Comma, ".": kVK_ANSI_Period, "/": kVK_ANSI_Slash,
+            "spacebar": kVK_Space, "forwarddelete": kVK_ForwardDelete, "del": kVK_ForwardDelete,
+            "arrowleft": kVK_LeftArrow, "arrowright": kVK_RightArrow, "arrowup": kVK_UpArrow, "arrowdown": kVK_DownArrow,
+            "-": kVK_ANSI_Minus, "minus": kVK_ANSI_Minus, "=": kVK_ANSI_Equal, "equal": kVK_ANSI_Equal, "plus": kVK_ANSI_Equal,
+            "[": kVK_ANSI_LeftBracket, "]": kVK_ANSI_RightBracket, ";": kVK_ANSI_Semicolon, "'": kVK_ANSI_Quote,
+            "\\": kVK_ANSI_Backslash, "`": kVK_ANSI_Grave,
         ]
         for (index, code) in [kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7, kVK_F8, kVK_F9, kVK_F10, kVK_F11, kVK_F12].enumerated() {
             map["f\(index + 1)"] = code

@@ -13,16 +13,36 @@ struct BrainModel: Identifiable, Equatable, Sendable {
     let detail: String
     let bytes: Int64
     let license: String
+    /// How much memory the Mac should have for it to run comfortably, in GB.
+    var memory = 8
+    /// A little label, like "Best eyes".
+    var badge: String?
+    /// The most picture it gets to look at, in pixels. Bigger reads small text better, but thinks slower.
+    /// Nil leaves it to the model.
+    var pixels: Int?
     /// The Hugging Face repo.
     var repo: String { id }
 
     var sizeText: String { ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) }
 
+    /// Whether this Mac has the memory for it.
+    var fits: Bool { ProcessInfo.processInfo.physicalMemory >= UInt64(memory) * 1_000_000_000 }
+
     static let vision = [
         BrainModel(id: "mlx-community/LFM2.5-VL-1.6B-4bit", kind: .vision, name: "Quick Duck · LFM2.5-VL 1.6B",
-                   detail: "Small and fast. Plenty for roasting your tabs.", bytes: 1_500_000_000, license: "LFM Open License"),
+                   detail: "Small and fast. Plenty for roasting your tabs.", bytes: 1_491_575_838, license: "LFM Open License"),
         BrainModel(id: "lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit", kind: .vision, name: "Smart Duck · Qwen3-VL 4B",
-                   detail: "Reads screens better and is funnier. Wants 16 GB of memory.", bytes: 3_100_000_000, license: "Apache 2.0"),
+                   detail: "Reads screens better and is funnier.", bytes: 3_093_767_519, license: "Apache 2.0",
+                   memory: 16, pixels: 1_310_720),
+        BrainModel(id: "mlx-community/Qwen3-VL-8B-Instruct-4bit", kind: .vision, name: "Eagle Duck · Qwen3-VL 8B",
+                   detail: "Reads small print, menus and dense pages. Knows where everything is on screen.",
+                   bytes: 5_760_665_246, license: "Apache 2.0", memory: 16, badge: "Sharp eyes", pixels: 1_800_000),
+        BrainModel(id: "mlx-community/Qwen3.5-9B-4bit", kind: .vision, name: "Genius Duck · Qwen3.5 9B",
+                   detail: "The best seer that fits most Macs. Sees and reasons about screens, and talks like a real person.",
+                   bytes: 5_950_221_072, license: "Apache 2.0", memory: 16, badge: "Best eyes", pixels: 1_800_000),
+        BrainModel(id: "mlx-community/Qwen3.6-35B-A3B-4bit", kind: .vision, name: "Big Brain Duck · Qwen3.6 35B-A3B",
+                   detail: "Huge, but only wakes 3B at a time, so it's still quick. For Macs with lots of memory.",
+                   bytes: 20_402_204_271, license: "Apache 2.0", memory: 32, badge: "Galaxy brain", pixels: 2_000_000),
         BrainModel(id: "mlx-community/gemma-4-e2b-it-4bit", kind: .vision, name: "Gemma Duck · Gemma 4 E2B",
                    detail: "Google's small multimodal model.", bytes: 3_600_000_000, license: "Gemma Terms"),
     ]

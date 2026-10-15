@@ -40,6 +40,7 @@
 		9543748C04460CB918F958AD /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F13E8A5AE693F3ABBD89D6 /* HotKeys.swift */; };
 		95601240C26DB61994C29413 /* Prices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E3C4E6B10F308D764396548 /* Prices.swift */; };
 		A19F6E4828427BE6BFC44D1F /* Sprites.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26CEED2B25E7BB803B2CBD44 /* Sprites.swift */; };
+		A93487F186CA945F05F6F069 /* Feel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B19511964AA2F4237AE4E04D /* Feel.swift */; };
 		A95AC5E403F60F1F9FA60F68 /* OFL-Fredoka.txt in Resources */ = {isa = PBXBuildFile; fileRef = 266309EC711A8741610E3C45 /* OFL-Fredoka.txt */; };
 		AA342FD8DEC906A6FB536635 /* Duck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CA5D1F8E2CAA97909FBE1 /* Duck.swift */; };
 		AA97D060044EABEABCEE152A /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C8A6A2022E67D6C0C055E7A0 /* MLXLLM */; };
@@ -94,6 +95,7 @@
 		A0D58C01329F4E1D71012535 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A6F13E8A5AE693F3ABBD89D6 /* HotKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeys.swift; sourceTree = "<group>"; };
 		AAE6D4577E609DEDC53C895E /* Ears.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ears.swift; sourceTree = "<group>"; };
+		B19511964AA2F4237AE4E04D /* Feel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feel.swift; sourceTree = "<group>"; };
 		D6CF952D6988C195171DB4C1 /* Director.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Director.swift; sourceTree = "<group>"; };
 		D769A8C5BC2EBB1D06CF89A8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		D8AA9898AA5CB7C8CE6CF94B /* DuckWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckWindow.swift; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 				1D7FD163F95E5CCCB4967878 /* Desk.swift */,
 				AAE6D4577E609DEDC53C895E /* Ears.swift */,
 				847D2D8FE8922EB5771EF0B6 /* Eyes.swift */,
+				B19511964AA2F4237AE4E04D /* Feel.swift */,
 				9D8668B83C0B69C852B553F9 /* Music.swift */,
 				2DDA5DF1FC98FA9122F2A816 /* Paws.swift */,
 			);
@@ -363,6 +366,7 @@
 				7C6C5AAD256CF6115440BB7B /* DuckWindow.swift in Sources */,
 				1A51547C1E88203B7B32C4BF /* Ears.swift in Sources */,
 				1EF23F0E1E770F1140E5D584 /* Eyes.swift in Sources */,
+				A93487F186CA945F05F6F069 /* Feel.swift in Sources */,
 				F4265051C57DFD92B5117D0B /* Feelings.swift in Sources */,
 				889E92F9DB7AFA63DB3DEB89 /* Fonts.swift in Sources */,
 				5D64C8D89797EDE2698CBB56 /* Goals.swift in Sources */,
