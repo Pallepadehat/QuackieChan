@@ -1,4 +1,5 @@
 import AVFoundation
+import AppKit
 import Speech
 
 /// Turns what you say into text, on the Mac. Uses SpeechAnalyzer on macOS 26 and later, and the older
@@ -24,8 +25,14 @@ final class Ears {
 
     func start() async throws {
         guard !isListening else { return }
-        if !Self.micAllowed {
+        switch Permission.microphone.state {
+        case .allowed: break
+        case .notAsked:
+            NSApp.activate(ignoringOtherApps: true)
             guard await Self.askForMic() else { throw EarsError.noMic }
+        case .denied:
+            Permission.microphone.openSettings()
+            throw EarsError.noMic
         }
         let session: any HearingSession
         if #available(macOS 26, *) {
@@ -80,7 +87,7 @@ final class Ears {
 
         var errorDescription: String? {
             switch self {
-            case .noMic: "The duck needs the microphone. Allow it in System Settings → Privacy & Security → Microphone."
+            case .noMic: "The duck can't hear you: switch on Quackie Chan under System Settings → Privacy & Security → Microphone."
             case .noRecognizer: "Speech recognition isn't available for your language on this Mac."
             }
         }

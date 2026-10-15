@@ -759,7 +759,6 @@ private struct ModelRow: View {
 
 private struct TalkPage: View {
     @Bindable var settings = Settings.shared
-    @State private var micAllowed = Ears.micAllowed
 
     var body: some View {
         Form {
@@ -778,13 +777,7 @@ private struct TalkPage: View {
             }
             Section {
                 Toggle("⌃⌥Q opens the talk box and listens", isOn: $settings.prefs.talkShortcut)
-                LabeledContent("Microphone") {
-                    if micAllowed {
-                        Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    } else {
-                        Button("Allow…") { Task { micAllowed = await Ears.askForMic() } }
-                    }
-                }
+                PermissionRow(permission: .microphone, title: "Microphone")
             } footer: {
                 if #available(macOS 26, *) {
                     Text("Speech is turned into text on your Mac with Apple's SpeechAnalyzer. Audio never leaves the Mac and is never saved.")
@@ -809,8 +802,6 @@ private struct TalkPage: View {
 
 private struct HandsPage: View {
     @Bindable var settings = Settings.shared
-    @State private var canPress = Hands.canPressButtons
-
     var body: some View {
         Form {
             Section {
@@ -826,13 +817,7 @@ private struct HandsPage: View {
                 .disabled(!settings.prefs.hands)
             }
             Section {
-                LabeledContent("Accessibility") {
-                    if canPress {
-                        Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    } else {
-                        Button("Allow…") { Hands.askForAccessibility() }
-                    }
-                }
+                PermissionRow(permission: .accessibility, title: "Accessibility")
             } footer: {
                 Text("Needed for shortcuts, typing, and closing or minimising windows of apps that aren't browsers. "
                      + "Apps, music, volume and browser tabs work without it (macOS asks once per app the duck talks to).")
@@ -845,7 +830,6 @@ private struct HandsPage: View {
             }
         }
         .formStyle(.grouped)
-        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in canPress = Hands.canPressButtons }
     }
 }
 
@@ -853,8 +837,6 @@ private struct HandsPage: View {
 
 private struct PrivacyPage: View {
     @Bindable var settings = Settings.shared
-    @State private var canRecord = Eyes.canRecordScreen
-    @State private var canPress = Hands.canPressButtons
 
     var body: some View {
         Form {
@@ -866,13 +848,7 @@ private struct PrivacyPage: View {
                 .onChange(of: settings.prefs.canSee) { _, on in
                     if on, !Eyes.canRecordScreen { Eyes.askToRecordScreen() }
                 }
-                LabeledContent("Screen Recording") {
-                    if canRecord {
-                        Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    } else {
-                        Button("Open System Settings") { Eyes.openScreenRecordingSettings() }
-                    }
-                }
+                PermissionRow(permission: .screenRecording, title: "Screen Recording")
             } header: {
                 Text("Seeing")
             } footer: {
@@ -882,10 +858,8 @@ private struct PrivacyPage: View {
                 Picker("When the countdown runs out", selection: $settings.prefs.enforcement) {
                     ForEach(Enforcement.allCases) { Text($0.name).tag($0) }
                 }
-                if settings.prefs.enforcement == .close, !canPress {
-                    LabeledContent("Accessibility") {
-                        Button("Allow…") { Hands.askForAccessibility() }
-                    }
+                if settings.prefs.enforcement == .close {
+                    PermissionRow(permission: .accessibility, title: "Accessibility")
                 }
             } header: {
                 Text("Tough love")
@@ -916,10 +890,6 @@ private struct PrivacyPage: View {
             }
         }
         .formStyle(.grouped)
-        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
-            canRecord = Eyes.canRecordScreen
-            canPress = Hands.canPressButtons
-        }
     }
 
     private func appName(_ id: String) -> String {

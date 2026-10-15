@@ -19,6 +19,7 @@
 		2968232C51B55A371124BABA /* Music.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8668B83C0B69C852B553F9 /* Music.swift */; };
 		2B48EC04807A6A6EDD82D32F /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = A39C4F8A23B2E1F2E75D1950 /* MLXVLM */; };
 		2D4413E6EED742B8172D0B43 /* QuackieChanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55A7DEEB4BBE3C3672AB2D0D /* QuackieChanTests.swift */; };
+		31F02781B65D110A3557377A /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBDE540FDC9D4901BE9679B /* Permissions.swift */; };
 		39118814A564480133580D4B /* Reactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3A79B7DADB980859FEE2E6 /* Reactions.swift */; };
 		3A457429BDD9B5932151254F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83B0616A5C5CF29E762FC498 /* Assets.xcassets */; };
 		446E5DBCAB7DCF469AF541B3 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = CFD479C605679F448073F040 /* MLXLMCommon */; };
@@ -81,6 +82,7 @@
 		8970DD3D483D47442D4668D4 /* AppleBrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleBrain.swift; sourceTree = "<group>"; };
 		908BB4E26AA2714ECAED4D15 /* Talk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Talk.swift; sourceTree = "<group>"; };
 		957B51542BB4B3B33318331D /* QuackieChan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuackieChan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BBDE540FDC9D4901BE9679B /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
 		9D8668B83C0B69C852B553F9 /* Music.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Music.swift; sourceTree = "<group>"; };
 		9E3A79B7DADB980859FEE2E6 /* Reactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reactions.swift; sourceTree = "<group>"; };
 		A0D58C01329F4E1D71012535 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 		4345A2D2CC2264FAB234CC49 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				9BBDE540FDC9D4901BE9679B /* Permissions.swift */,
 				45F1643F22939D956D2741AD /* Settings.swift */,
 				0B3C4F62FE2A80EAAC1D1113 /* SettingsView.swift */,
 			);
@@ -352,6 +355,7 @@
 				F2EC8F44D943A94DC32B2B64 /* ModelLibrary.swift in Sources */,
 				2968232C51B55A371124BABA /* Music.swift in Sources */,
 				5772327F490605EB0649B187 /* Paws.swift in Sources */,
+				31F02781B65D110A3557377A /* Permissions.swift in Sources */,
 				95601240C26DB61994C29413 /* Prices.swift in Sources */,
 				39118814A564480133580D4B /* Reactions.swift in Sources */,
 				0E0C006E26BB8D13F02F15F2 /* Settings.swift in Sources */,
