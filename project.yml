@@ -1,0 +1,90 @@
+name: QuackieChan
+options:
+  bundleIdPrefix: com.jakobsendevelopment.quackiechan
+  xcodeVersion: "27.0"
+  projectFormat: xcode16_0
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    # Xcode's recommended settings.
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  # Runs the vision model on the Mac's GPU.
+  MLXSwift:
+    url: https://github.com/ml-explore/mlx-swift
+    minorVersion: 0.32.3
+  MLXSwiftLM:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    minorVersion: 3.32.3
+  # Downloads the model from Hugging Face and reads its tokenizer.
+  SwiftHuggingFace:
+    url: https://github.com/huggingface/swift-huggingface
+    from: 1.0.0
+  SwiftTransformers:
+    url: https://github.com/huggingface/swift-transformers
+    from: 1.3.5
+
+targets:
+  QuackieChan:
+    type: application
+    platform: macOS
+    scheme:
+      testTargets: [QuackieChanTests]
+    sources:
+      - path: QuackieChan
+    dependencies:
+      - package: MLXSwift
+        product: MLX
+      - package: MLXSwiftLM
+        product: MLXVLM
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: SwiftHuggingFace
+        product: HuggingFace
+      - package: SwiftTransformers
+        product: Tokenizers
+    settings:
+      base:
+        PRODUCT_NAME: Quackie Chan
+        PRODUCT_MODULE_NAME: QuackieChan
+        PRODUCT_BUNDLE_IDENTIFIER: com.jakobsendevelopment.quackiechan
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 537P4FPMZ4
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Quackie Chan
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: Copyright © 2026 Patrick Jakobsen. MIT License.
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: The duck asks your browser which page you're on (so it knows when you're shopping or doomscrolling) and your music app what's playing (so it can dance). Nothing leaves your Mac.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Talk to the duck. What you say is turned into text on your Mac and never leaves it.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Talk to the duck. Speech is recognised on your Mac and never leaves it.
+        # The duck needs to look at other apps' windows and ask browsers for their address,
+        # which the App Sandbox doesn't allow.
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+
+  QuackieChanTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: QuackieChanTests
+    dependencies:
+      - target: QuackieChan
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jakobsendevelopment.quackiechan.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Quackie Chan.app/Contents/MacOS/Quackie Chan"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 537P4FPMZ4

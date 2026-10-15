@@ -1,0 +1,10 @@
+name: Idea
+description: A new move, goal, duck, hat, line or anything else.
+labels: [idea]
+body:
+  - type: textarea
+    attributes:
+      label: What should the duck do?
+      description: The funnier the better. Sketches and memes welcome.
+    validations:
+      required: true

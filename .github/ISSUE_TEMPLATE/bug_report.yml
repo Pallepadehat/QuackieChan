@@ -1,0 +1,22 @@
+name: Bug report
+description: The duck did something it shouldn't (or didn't do something it should).
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: And what did you expect? Screenshots or recordings help a lot.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How can we make it happen?
+      placeholder: "1. Turn on Save money\n2. Open a shop\n3. ..."
+  - type: input
+    attributes:
+      label: macOS version and Mac
+      placeholder: macOS 26.1, MacBook Air M3
+  - type: input
+    attributes:
+      label: AI brain
+      placeholder: None / LFM2.5-VL / Qwen3-VL / Gemma 4
