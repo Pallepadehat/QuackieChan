@@ -65,7 +65,37 @@ Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to
 
 ## 🚀 Get it running
 
-You need a Mac on **macOS 14 or later** and **Xcode 16 or later**. The AI brain needs Apple silicon; everything else works on any Mac.
+You need a Mac on **macOS 14 or later**. The AI brain needs Apple silicon; everything else works on any Mac.
+
+### Install it
+
+Paste this into Terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Pallepadehat/QuackieChan/main/install.sh | bash
+```
+
+It downloads the latest release, puts Quackie Chan in your Applications folder (replacing an older copy), and opens it. Run it again any time to update.
+
+<details>
+<summary><b>Or use the .dmg</b></summary>
+<br>
+
+Download **QuackieChan.dmg** from the [latest release](https://github.com/Pallepadehat/QuackieChan/releases/latest), open it and drag the duck into Applications.
+
+Releases aren't notarized by Apple yet, so the first time, macOS says it can't check Quackie Chan for malware. Click **Done**, then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**. Or run:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Quackie Chan.app"
+```
+
+The install script does this for you. It's [short and readable](install.sh), if you'd like to check it first.
+
+</details>
+
+### Build it yourself
+
+You need **Xcode 16 or later**.
 
 ```sh
 git clone https://github.com/Pallepadehat/QuackieChan.git
@@ -252,6 +282,26 @@ scripts/            build.sh, make-icons.sh
 ```
 
 </details>
+
+### Making a release
+
+Releases are signed with a Developer ID certificate and notarized by Apple, so macOS opens them without warnings even when they're downloaded in a browser. Every release is built the same way, so the duck keeps its permissions (Screen Recording, Accessibility) across updates.
+
+Once, save your notarization login in the keychain. Make an app-specific password at [account.apple.com](https://account.apple.com) → Sign-In and Security → App-Specific Passwords, then:
+
+```sh
+xcrun notarytool store-credentials quackie-notary --apple-id <your Apple ID> --team-id 537P4FPMZ4
+```
+
+For each release, bump `MARKETING_VERSION` in `project.yml`, commit, and run:
+
+```sh
+./scripts/release.sh
+```
+
+Without an active Apple Developer Program membership, Apple won't notarize. Run `./scripts/release.sh --without-notarizing` instead: it still signs with the Developer ID certificate, so the signature stays the same once notarizing is back.
+
+It builds the app, packs it into `QuackieChan.dmg`, has Apple notarize it, staples the ticket on, tags the commit and publishes a GitHub release with the disk image. The install script downloads the newest one. To only make the disk image, run `./scripts/make-dmg.sh --notarize` (or without `--notarize` for a quick local copy).
 
 <br>
 
