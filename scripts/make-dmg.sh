@@ -2,6 +2,8 @@
 # Builds Quackie Chan and packs it into build/QuackieChan.dmg: the app next to a shortcut to Applications, so you
 # can drag it across. That's the file a GitHub release carries; install.sh downloads it from there.
 #
+#   --sign         sign the app and the disk image with Developer ID, without notarizing (for when the Apple
+#                  Developer Program membership isn't active: the signature stays the same once it is)
 #   --notarize     sign with Developer ID, have Apple notarize it and staple the ticket, so macOS opens it without
 #                  "Apple couldn't check it for malware", even when downloaded in a browser. Needs a one-time
 #                  `xcrun notarytool store-credentials quackie-notary` (see the README, "Making a release").
@@ -9,10 +11,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NOTARIZE=0 BUILD=1
+SIGN=0 NOTARIZE=0 BUILD=1
 for arg in "$@"; do
   case "$arg" in
-    --notarize) NOTARIZE=1 ;;
+    --sign) SIGN=1 ;;
+    --notarize) SIGN=1; NOTARIZE=1 ;;
     --skip-build) BUILD=0 ;;
     *) echo "Unknown option: $arg"; exit 1 ;;
   esac
@@ -34,13 +37,17 @@ if (( NOTARIZE )); then
     exit 1
   fi
 fi
-(( BUILD )) && { (( NOTARIZE )) && QUACKIE_SIGN=developer-id ./scripts/build.sh || ./scripts/build.sh; }
+if (( BUILD )); then
+  if (( SIGN )); then QUACKIE_SIGN=developer-id ./scripts/build.sh; else ./scripts/build.sh; fi
+fi
 
 APP="build/Quackie Chan.app"
 [[ -d "$APP" ]] || { echo "No app at $APP. Run scripts/build.sh first."; exit 1; }
-if (( NOTARIZE )); then
-  codesign -dv "$APP" 2>&1 | grep -q "Authority=Developer ID Application" \
-    || { echo "$APP isn't signed with Developer ID. Build it with --notarize (without --skip-build)."; exit 1; }
+if (( SIGN )); then
+  # Read it all first: `| grep -q` stops early, codesign gets SIGPIPE, and pipefail calls that a failure.
+  SIGNATURE=$(codesign -dvv "$APP" 2>&1)
+  [[ "$SIGNATURE" == *"Authority=Developer ID Application"* ]] \
+    || { echo "$APP isn't signed with Developer ID. Build it with --sign or --notarize (without --skip-build)."; exit 1; }
 fi
 
 STAGE=$(mktemp -d)
@@ -52,11 +59,11 @@ DMG=build/QuackieChan.dmg
 rm -f "$DMG"
 hdiutil create -volname "Quackie Chan" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG" -quiet
 
+(( SIGN )) && codesign --sign "Developer ID Application" --timestamp "$DMG"
 if (( NOTARIZE )); then
-  codesign --sign "Developer ID Application" --timestamp "$DMG"
   echo "Sending it to Apple to be notarized (usually a few minutes)…"
   xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait | tee build/notarize.log
-  grep -q "status: Accepted" build/notarize.log || {
+  grep "status: Accepted" build/notarize.log >/dev/null || {
     echo "Apple didn't accept it. Ask why with: xcrun notarytool log <submission id> --keychain-profile $PROFILE"
     exit 1
   }

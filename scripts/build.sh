@@ -11,12 +11,14 @@ cd "$(dirname "$0")/.."
 command -v xcodegen >/dev/null && xcodegen generate --quiet
 
 SIGNING=()
+# Read into a variable rather than `| grep -q`, which can trip pipefail with SIGPIPE.
+IDENTITIES=$(security find-identity -v -p codesigning)
 if [[ "${QUACKIE_SIGN:-}" == "developer-id" ]]; then
-  security find-identity -v -p codesigning | grep -q '"Developer ID Application' \
+  [[ "$IDENTITIES" == *'"Developer ID Application'* ]] \
     || { echo "No Developer ID Application certificate in your keychain."; exit 1; }
   SIGNING=(CODE_SIGN_IDENTITY="Developer ID Application" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=537P4FPMZ4
     OTHER_CODE_SIGN_FLAGS=--timestamp CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO)  # no get-task-allow: Apple refuses to notarize it
-elif ! security find-identity -v -p codesigning | grep -q '"Apple Development'; then
+elif [[ "$IDENTITIES" != *'"Apple Development'* ]]; then
   echo "No Apple Development certificate found; signing ad hoc."
   SIGNING=(CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=)
 fi
