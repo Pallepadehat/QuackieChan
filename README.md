@@ -65,7 +65,37 @@ Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to
 
 ## 🚀 Get it running
 
-You need a Mac on **macOS 14 or later** and **Xcode 16 or later**. The AI brain needs Apple silicon; everything else works on any Mac.
+You need a Mac on **macOS 14 or later**. The AI brain needs Apple silicon; everything else works on any Mac.
+
+### Install it
+
+Paste this into Terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Pallepadehat/QuackieChan/main/install.sh | bash
+```
+
+It downloads the latest release, puts Quackie Chan in your Applications folder (replacing an older copy), and opens it. Run it again any time to update.
+
+<details>
+<summary><b>Or use the .dmg</b></summary>
+<br>
+
+Download **QuackieChan.dmg** from the [latest release](https://github.com/Pallepadehat/QuackieChan/releases/latest), open it and drag the duck into Applications.
+
+Quackie Chan isn't notarized by Apple (that takes a paid developer account), so the first time, macOS says it can't check it for malware. Either open **System Settings → Privacy & Security** and click **Open Anyway**, or run:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Quackie Chan.app"
+```
+
+The install script does this for you. It's [short and readable](install.sh), if you'd like to check it first.
+
+</details>
+
+### Build it yourself
+
+You need **Xcode 16 or later**.
 
 ```sh
 git clone https://github.com/Pallepadehat/QuackieChan.git
@@ -252,6 +282,16 @@ scripts/            build.sh, make-icons.sh
 ```
 
 </details>
+
+### Making a release
+
+Bump `MARKETING_VERSION` in `project.yml`, then push a tag:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The [Release workflow](.github/workflows/release.yml) builds `QuackieChan.dmg` and attaches it to a GitHub release with that name, and the install script picks it up from there. To make the disk image on your own Mac instead, run `./scripts/make-dmg.sh` and upload `build/QuackieChan.dmg` to a release yourself. Keep that file name: the install script looks for it.
 
 <br>
 
