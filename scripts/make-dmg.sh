@@ -20,12 +20,19 @@ done
 PROFILE=${QUACKIE_NOTARY_PROFILE:-quackie-notary}
 
 if (( NOTARIZE )); then
-  # Fail early, before a long build, if notarytool can't log in.
-  xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1 || {
-    echo "notarytool has no saved login called \"$PROFILE\". Set it up once with:"
-    echo "  xcrun notarytool store-credentials $PROFILE --apple-id <your Apple ID> --team-id 537P4FPMZ4"
+  # Fail early, before a long build, if notarytool can't log in, and say why.
+  if ! CHECK=$(xcrun notarytool history --keychain-profile "$PROFILE" 2>&1); then
+    if [[ "$CHECK" == *"No Keychain password item"* ]]; then
+      echo "notarytool has no saved login called \"$PROFILE\". Set it up once with:"
+      echo "  xcrun notarytool store-credentials $PROFILE --apple-id <your Apple ID> --team-id 537P4FPMZ4"
+    elif [[ "$CHECK" == *"agreement"* ]]; then
+      echo "Apple needs you to accept the latest Apple Developer Program License Agreement first:"
+      echo "  https://developer.apple.com/account (sign in and accept the banner at the top)"
+    else
+      echo "notarytool couldn't log in: $CHECK"
+    fi
     exit 1
-  }
+  fi
 fi
 (( BUILD )) && { (( NOTARIZE )) && QUACKIE_SIGN=developer-id ./scripts/build.sh || ./scripts/build.sh; }
 
