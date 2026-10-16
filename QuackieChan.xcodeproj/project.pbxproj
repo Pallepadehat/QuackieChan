@@ -104,6 +104,7 @@
 		DA88BE5863AB72D62FE9CE15 /* Sounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sounds.swift; sourceTree = "<group>"; };
 		E621DDB7AADED9BE30DCB1D9 /* Fredoka.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Fredoka.ttf; sourceTree = "<group>"; };
 		E63893D2958BF86D35E6DDEB /* LocalBrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalBrain.swift; sourceTree = "<group>"; };
+		F846412550CE1B4066E3494A /* QuackieChan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuackieChan.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				83B0616A5C5CF29E762FC498 /* Assets.xcassets */,
+				F846412550CE1B4066E3494A /* QuackieChan.entitlements */,
 				9EACB0F20B6AE9C0F346B004 /* App */,
 				9A5AC393A037FED2107CE1EB /* Brain */,
 				D95A186D5B58471DDFC309A1 /* Duck */,
@@ -418,11 +420,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = QuackieChan/QuackieChan.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 537P4FPMZ4;
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Quackie Chan";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
@@ -534,11 +537,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = QuackieChan/QuackieChan.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 537P4FPMZ4;
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Quackie Chan";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";

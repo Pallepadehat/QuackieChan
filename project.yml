@@ -88,7 +88,9 @@ targets:
         # The duck needs to look at other apps' windows and ask browsers for their address,
         # which the App Sandbox doesn't allow.
         ENABLE_APP_SANDBOX: NO
-        ENABLE_HARDENED_RUNTIME: NO
+        # Apple's notarization needs the hardened runtime; the entitlements let AppleScript and the microphone through.
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: QuackieChan/QuackieChan.entitlements
 
   QuackieChanTests:
     type: bundle.unit-test

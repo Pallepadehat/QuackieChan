@@ -81,15 +81,7 @@ It downloads the latest release, puts Quackie Chan in your Applications folder (
 <summary><b>Or use the .dmg</b></summary>
 <br>
 
-Download **QuackieChan.dmg** from the [latest release](https://github.com/Pallepadehat/QuackieChan/releases/latest), open it and drag the duck into Applications.
-
-Quackie Chan isn't notarized by Apple (that takes a paid developer account), so the first time, macOS says it can't check it for malware. Either open **System Settings → Privacy & Security** and click **Open Anyway**, or run:
-
-```sh
-xattr -dr com.apple.quarantine "/Applications/Quackie Chan.app"
-```
-
-The install script does this for you. It's [short and readable](install.sh), if you'd like to check it first.
+Download **QuackieChan.dmg** from the [latest release](https://github.com/Pallepadehat/QuackieChan/releases/latest), open it and drag the duck into Applications. Releases are signed and notarized by Apple, so it opens like any other app.
 
 </details>
 
@@ -285,13 +277,21 @@ scripts/            build.sh, make-icons.sh
 
 ### Making a release
 
-Bump `MARKETING_VERSION` in `project.yml`, then push a tag:
+Releases are signed with a Developer ID certificate and notarized by Apple, so macOS opens them without warnings even when they're downloaded in a browser. Every release is built the same way, so the duck keeps its permissions (Screen Recording, Accessibility) across updates.
+
+Once, save your notarization login in the keychain. Make an app-specific password at [account.apple.com](https://account.apple.com) → Sign-In and Security → App-Specific Passwords, then:
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+xcrun notarytool store-credentials quackie-notary --apple-id <your Apple ID> --team-id 537P4FPMZ4
 ```
 
-The [Release workflow](.github/workflows/release.yml) builds `QuackieChan.dmg` and attaches it to a GitHub release with that name, and the install script picks it up from there. To make the disk image on your own Mac instead, run `./scripts/make-dmg.sh` and upload `build/QuackieChan.dmg` to a release yourself. Keep that file name: the install script looks for it.
+For each release, bump `MARKETING_VERSION` in `project.yml`, commit, and run:
+
+```sh
+./scripts/release.sh
+```
+
+It builds the app, packs it into `QuackieChan.dmg`, has Apple notarize it, staples the ticket on, tags the commit and publishes a GitHub release with the disk image. The install script downloads the newest one. To only make the disk image, run `./scripts/make-dmg.sh --notarize` (or without `--notarize` for a quick local copy).
 
 <br>
 

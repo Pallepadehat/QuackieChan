@@ -4,8 +4,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/Pallepadehat/QuackieChan/main/install.sh | bash
 #
 # It downloads the latest QuackieChan.dmg from GitHub Releases, puts the app in /Applications (replacing an older
-# copy), clears the "downloaded from the internet" flag so macOS lets it open without a notarization warning, and
-# opens it.
+# copy) and opens it. Releases are notarized by Apple; it also clears the "downloaded from the internet" flag, so even
+# a disk image built without notarization opens without a warning.
 #
 # Options (after `bash -s --` when piping):
 #   path/to/QuackieChan.dmg   install from a .dmg you already have instead of downloading
@@ -81,7 +81,7 @@ main() {
   run mkdir -p "${dest}"
   run rm -rf "${dest}/${app}"
   run ditto "$tmp/mount/${app}" "${dest}/${app}"
-  # The app isn't notarized by Apple, so macOS would refuse to open it if it carries the download flag.
+  # Releases are notarized, but a disk image made without it would be blocked while it carries the download flag.
   run xattr -dr com.apple.quarantine "${dest}/${app}" 2>/dev/null || true
 
   say "Quackie Chan is installed in ${dest}. Quack!"

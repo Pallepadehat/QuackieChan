@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The hardened runtime (needed for Apple's notarization) blocks these unless asked for. -->
+	<!-- Asking browsers which page is open, and music apps what's playing, with AppleScript. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- Listening when you talk to the duck. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>
