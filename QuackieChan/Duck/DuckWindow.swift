@@ -1,15 +1,31 @@
 import AppKit
 import SwiftUI
 
+/// A see-through panel macOS doesn't push back under the menu bar, so the duck can stand on (or hang off) windows
+/// right at the top of the screen with its head over the menu bar.
+private class DuckPanel: NSPanel {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+}
+
 /// A panel that can take typing (for the talk box) without making Quackie Chan the active app.
-private final class KeyPanel: NSPanel {
+private final class KeyPanel: DuckPanel {
     override var canBecomeKey: Bool { true }
+}
+
+/// Somewhere the duck can come down: the floor, or the top of a window. When a window's top is too close to the
+/// top of the screen to stand on, it hangs off the edge by a wing instead.
+private struct Spot {
+    var x: CGFloat
+    /// The floor, or the window's top edge.
+    var top: CGFloat
+    var window: Desk.Window?
+    var hang = false
 }
 
 /// The duck's two see-through panels above every window (the duck, and its speech bubble) and everything the
 /// duck does on its own: waddling, flying up onto your windows and hopping between them, falling off when you
 /// move one, getting thrown and bouncing off the screen edges, typing along with you, dancing to your music,
-/// napping when you're away, and acting on how it feels.
+/// napping when you're away, acting on how it feels, sitting when told to, and drinking when nobody pets it.
 @MainActor
 final class DuckWindow {
     let duck = Duck()
@@ -23,7 +39,10 @@ final class DuckWindow {
     private let placement = BubblePlacement()
     private var ticker: Timer?
     private var feelings: Feelings { .shared }
+    private var booze: Booze { .shared }
+    private var litter: Litter { .shared }
     private var prefs: Prefs { Settings.shared.prefs }
+    private var observers: [NSObjectProtocol] = []
 
     /// Where the duck's feet are, in screen coordinates.
     private var feet = CGPoint.zero
@@ -32,7 +51,16 @@ final class DuckWindow {
     /// Flying on purpose (lighter, flapping) rather than falling.
     private var soaring = false
     private var perch: Desk.Window?
+    /// Holding on to the perch's top edge rather than standing on it.
+    private var hanging: Bool {
+        get { duck.hanging }
+        set { duck.hanging = newValue }
+    }
+    /// The window it just fell or let go off, so it doesn't grab straight back on.
+    private var letGo: CGWindowID?
     private var walkTarget: CGFloat?
+    /// Walking backwards, smooth as anything.
+    private var moonwalking = false
     private var nextAntic = Date().addingTimeInterval(12)
     private var tickCount = 0
     private var stageSize = DuckStage.size(pixel: 3)
@@ -53,28 +81,41 @@ final class DuckWindow {
     private var danceAnchor: CGFloat?
     /// Runs once the duck lands from its next jump.
     private var onLand: (() -> Void)?
-    /// Where the next jump comes down, when it isn't onto the floor or a window's top.
-    private var landingY: CGFloat?
+    /// Where the flight it's on comes down.
+    private var landing: Spot?
 
     private var pokes: [Date] = []
     private var hoverSince: Date?
     private var dareUntil: Date?
     private var lastMouse = CGPoint.zero
     private var lastStartle = Date.distantPast
+    private var lastDeskQuip = Date.distantPast
+    private var lastDeskSwitch = Date.distantPast
+
+    /// The cursor being blown across the screen by machine gun fire: from, to, and when it starts moving.
+    private var shove: (from: CGPoint, to: CGPoint, start: TimeInterval)?
+    private var lastBurst = Date.distantPast
+
+    /// On every desktop, or just the one it was started on.
+    static var behavior: NSWindow.CollectionBehavior {
+        Settings.shared.prefs.allDesktops ? [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+            : [.stationary, .fullScreenAuxiliary, .ignoresCycle]
+    }
 
     init() {
-        panel = NSPanel(contentRect: NSRect(origin: .zero, size: stageSize),
-                        styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel = DuckPanel(contentRect: NSRect(origin: .zero, size: stageSize),
+                          styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         bubblePanel = KeyPanel(contentRect: NSRect(origin: .zero, size: BubbleStage.size),
                                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         for window in [panel, bubblePanel] as [NSPanel] {
             window.isOpaque = false
             window.backgroundColor = .clear
             window.hasShadow = false
-            window.level = .floating
+            // Above the menu bar, so it can stand on windows right at the top of the screen.
+            window.level = .statusBar
             window.isFloatingPanel = true
             window.hidesOnDeactivate = false
-            window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+            window.collectionBehavior = Self.behavior
             window.ignoresMouseEvents = true
         }
         bubblePanel.becomesKeyOnlyIfNeeded = true
@@ -82,6 +123,15 @@ final class DuckWindow {
             guard let self else { return }
             if listening { self.duck.set(.listening) } else if self.duck.activity == .listening { self.duck.set(.idle) }
         }
+        duck.tipsy = booze.stage.rawValue
+        observers.append(NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.desktopChanged() }
+        })
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.screensChanged() }
+        })
     }
 
     func show() {
@@ -99,6 +149,7 @@ final class DuckWindow {
         place()
         panel.orderFrontRegardless()
         bubblePanel.orderFrontRegardless()
+        litter.show()
         startTicking(fast: true)
     }
 
@@ -124,13 +175,14 @@ final class DuckWindow {
     }
 
     private var isMoving: Bool {
-        airborne || dragging || walkTarget != nil || duck.isDancing || duck.isInMotion
-            || [.typing, .celebrating, .pecking, .dizzy].contains(duck.activity)
+        airborne || dragging || walkTarget != nil || duck.isDancing || duck.isInMotion || shove != nil
+            || [.typing, .celebrating, .pecking, .dizzy, .shooting, .eating].contains(duck.activity)
     }
 
     func hide() {
         panel.orderOut(nil)
         bubblePanel.orderOut(nil)
+        litter.hide()
         ticker?.invalidate()
         ticker = nil
     }
@@ -164,15 +216,12 @@ final class DuckWindow {
         duck.step(by: dt)
         let mouse = NSEvent.mouseLocation
         duck.mouse = CGPoint(x: mouse.x - feet.x, y: mouse.y - (feet.y + 40 * pixel))
+        if shove != nil { blowCursorAway() }
         if every(0.1, "clicks") { updatePassThrough(mouse) }
         if every(0.5, "notice") { noticeTyping(); noticeAway(); noticeMouse(mouse) }
-        if every(1, "feel") { feelings.drift(by: 1); resizeIfNeeded() }
+        if every(1, "feel") { feelings.drift(by: 1); resizeIfNeeded(); drinkIfThirsty() }
         if every(4, "music"), ProcessInfo.processInfo.environment["QUACKIE_DEMO"] != "bananas" { noticeMusic() }
-        if let since = hoverSince, Date().timeIntervalSince(since) > 1.2, !dragging, duck.isFree, duck.activity != .petted {
-            duck.set(.petted)
-            feelings.feel(.petted)
-            if Int.random(in: 0..<3) == 0 { say(.pet) }
-        }
+        if let since = hoverSince, !dragging { beingPetted(for: Date().timeIntervalSince(since)) }
         if hoverSince == nil, duck.activity == .petted { duck.set(.idle) }
         if let dare = dareUntil, Date() > dare {
             dareUntil = nil
@@ -196,10 +245,19 @@ final class DuckWindow {
     private var spriteHeight: CGFloat { CGFloat(DuckArt.canvasHeight) * pixel }
 
     private func resizeIfNeeded() {
+        let behavior = Self.behavior
+        if panel.collectionBehavior != behavior {
+            panel.collectionBehavior = behavior
+            bubblePanel.collectionBehavior = behavior
+            litter.layout()
+        }
         let size = DuckStage.size(pixel: pixel)
         guard size != stageSize else { return }
         stageSize = size
         panel.setContentSize(size)
+        litter.layout()
+        // Hanging by the wing depends on its size.
+        if hanging { fallOff(say: nil, push: 0) }
     }
 
     /// Puts the duck where its feet are (two art pixels above the canvas bottom), and its bubble over its head,
@@ -228,70 +286,102 @@ final class DuckWindow {
 
     // MARK: Flying, falling, landing
 
+    /// True if some screen has this point on it.
+    private func onAScreen(_ point: CGPoint) -> Bool {
+        NSScreen.screens.contains { $0.frame.contains(point) }
+    }
+
+    /// The highest its feet go: its head may poke off the top of the screen a little, its body may not.
+    private func ceiling(of screen: NSScreen) -> CGFloat {
+        screen.frame.maxY - 20 * pixel
+    }
+
     private func fly(_ dt: TimeInterval) {
         let previous = feet
+        let home = screen
         velocity.dy -= (soaring ? 900 : 2400) * dt
         feet.x += velocity.dx * dt
         feet.y += velocity.dy * dt
 
-        // Bounce off the sides and the top of the screen. The bubble moves out of the way, so it can go all the way up.
-        let bounds = screen.visibleFrame
+        // Bounce off the sides and the top of the screen, unless another screen carries on past them.
+        // The bubble moves out of the way, so it can go all the way up.
+        let bounds = home.visibleFrame
         let half = CGFloat(DuckArt.canvasWidth) * pixel / 2
-        if feet.x < bounds.minX + half || feet.x > bounds.maxX - half {
+        let pastLeft = feet.x < bounds.minX + half && !onAScreen(CGPoint(x: home.frame.minX - 2, y: feet.y + 10))
+        let pastRight = feet.x > bounds.maxX - half && !onAScreen(CGPoint(x: home.frame.maxX + 2, y: feet.y + 10))
+        if pastLeft || pastRight {
             feet.x = min(max(feet.x, bounds.minX + half), bounds.maxX - half)
             velocity.dx *= -0.6
             if abs(velocity.dx) > 400 { duck.spawn(.sparkle); Sounds.shared.play(.thud) }
         }
-        let ceiling = bounds.maxY - spriteHeight * 0.85
-        if feet.y > ceiling {
-            feet.y = ceiling
+        if feet.y > ceiling(of: home), !onAScreen(CGPoint(x: feet.x, y: home.frame.maxY + 2)) {
+            feet.y = ceiling(of: home)
             velocity.dy = -abs(velocity.dy) * 0.4
         }
 
         guard velocity.dy < 0 else { return }
-        if let target = landingY {
-            if feet.y <= target { land(on: target, perch: windowUnder(x: feet.x, top: target)) }
+        if let target = landing {
+            if feet.y <= feetY(target) { settle(target) }
             return
         }
-        // Land on the first window top it falls past that isn't hidden behind another window, else the floor.
-        if let window = windowCrossed(from: previous.y, to: feet.y, x: feet.x) {
-            land(on: window.frame.maxY, perch: window)
-        } else if feet.y <= bounds.minY {
-            land(on: bounds.minY, perch: nil)
+        // Lands on (or grabs) the first window top it falls past that isn't hidden behind another window, else the
+        // floor, unless there's another screen underneath to fall on to.
+        if let spot = windowCrossed(from: previous.y, to: feet.y, x: feet.x) {
+            settle(spot)
+        } else if feet.y <= bounds.minY, !onAScreen(CGPoint(x: feet.x, y: home.frame.minY - 2)) {
+            settle(Spot(x: feet.x, top: bounds.minY))
         }
     }
 
-    /// The front-most window whose top edge lies between two heights at `x`, with that bit of edge not covered.
-    private func windowCrossed(from top: CGFloat, to bottom: CGFloat, x: CGFloat) -> Desk.Window? {
+    /// Where its feet go for a spot: on top, or hanging below the edge.
+    private func feetY(_ spot: Spot) -> CGFloat {
+        spot.hang ? spot.top - CGFloat(DuckArt.hangDrop) * pixel : spot.top
+    }
+
+    /// Where on top of `window` it could go at `x`: standing, or hanging off the edge when there's no headroom.
+    /// Nil for windows reaching up under the menu bar (full screen ones) and ones too low to bother with.
+    private func spot(on window: Desk.Window, x: CGFloat) -> Spot? {
+        let top = window.frame.maxY
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(CGPoint(x: x, y: top - 1)) }) else { return nil }
+        let visible = screen.visibleFrame
+        guard top <= visible.maxY + 2 else { return nil }
+        let hang = top + CGFloat(DuckArt.standingHeight) * pixel > screen.frame.maxY
+        let spot = Spot(x: x, top: top, window: window, hang: hang)
+        guard feetY(spot) > visible.minY + 40 else { return nil }
+        return spot
+    }
+
+    /// The front-most window whose top edge it passed between two heights at `x` (by its feet, or by its wing if
+    /// it would hang off it), with that bit of edge not covered by another window.
+    private func windowCrossed(from top: CGFloat, to bottom: CGFloat, x: CGFloat) -> Spot? {
         let windows = Desk.windows()
         for (index, window) in windows.enumerated()
-        where window.frame.maxY <= top && window.frame.maxY >= bottom
-            && x > window.frame.minX + 20 && x < window.frame.maxX - 20
-            && window.frame.maxY < screen.visibleFrame.maxY - spriteHeight * 0.8 {
-            let edge = CGPoint(x: x, y: window.frame.maxY - 2)
-            if !windows[..<index].contains(where: { $0.frame.contains(edge) }) { return window }
+        where window.id != letGo && x > window.frame.minX + 20 && x < window.frame.maxX - 20 {
+            guard let spot = spot(on: window, x: x) else { continue }
+            let grip = spot.top - feetY(spot)
+            guard spot.top <= top + grip, spot.top >= bottom + grip else { continue }
+            let edge = CGPoint(x: x, y: spot.top - 2)
+            if !windows[..<index].contains(where: { $0.frame.contains(edge) }) { return spot }
         }
         return nil
     }
 
-    private func windowUnder(x: CGFloat, top: CGFloat) -> Desk.Window? {
-        Desk.windows().first { abs($0.frame.maxY - top) < 3 && x > $0.frame.minX && x < $0.frame.maxX }
-    }
-
-    private func land(on y: CGFloat, perch window: Desk.Window?) {
+    private func settle(_ spot: Spot) {
         let impact = -velocity.dy
         let wasSoaring = soaring
-        feet.y = y
-        perch = window
+        feet.y = feetY(spot)
+        perch = spot.window
+        hanging = spot.hang
+        letGo = nil
         airborne = false
         soaring = false
         velocity = .zero
-        landingY = nil
+        landing = nil
         if let onLand {
             self.onLand = nil
             duck.set(.idle)
             onLand()
-        } else if impact > 1500 && !wasSoaring {
+        } else if impact > 1500 && !wasSoaring && !spot.hang {
             duck.set(.dizzy)
             feelings.feel(.landedHard)
             Sounds.shared.play(.thud)
@@ -299,26 +389,58 @@ final class DuckWindow {
             after(2.2) { [weak self] in if self?.duck.activity == .dizzy { self?.duck.set(.idle) } }
         } else {
             duck.set(.idle)
-            duck.hop()
-            if window != nil, Int.random(in: 0..<4) == 0 { say(.perch) }
+            if spot.hang {
+                if Int.random(in: 0..<3) == 0 { say(.hang) }
+            } else {
+                duck.hop()
+                if spot.window != nil, Int.random(in: 0..<4) == 0 { say(.perch) }
+            }
         }
     }
 
-    /// Flies (flapping, on purpose) to a spot. The arc is worked out to land right on it.
-    private func flyTo(_ target: CGPoint) {
-        let distance = hypot(target.x - feet.x, target.y - feet.y)
-        let time = min(1.6, max(0.6, distance / 650))
-        soaring = true
-        velocity = CGVector(dx: (target.x - feet.x) / time, dy: (target.y - feet.y + 0.5 * 900 * time * time) / time)
-        airborne = true
+    /// Off whatever it was standing on or holding.
+    private func leavePerch() {
+        if let perch { letGo = perch.id }
         perch = nil
+        hanging = false
+    }
+
+    /// Flies (flapping, on purpose) to a spot. The arc is worked out to land right on it, without bonking its head
+    /// on the top of the screen on the way.
+    private func flyTo(_ spot: Spot) {
+        let target = CGPoint(x: spot.x, y: feetY(spot))
+        let gravity: CGFloat = 900
+        let distance = hypot(target.x - feet.x, target.y - feet.y)
+        let rise = max(0, target.y - feet.y)
+        // The quickest flight up there arrives at the top of its arc; anything slower goes higher first.
+        let quickest = sqrt(2 * rise / gravity)
+        var time = min(1.6, max(0.6, distance / 650))
+        let top = ceiling(of: screen)
+        for step in 0...8 {
+            let candidate = time - (time - quickest) * CGFloat(step) / 8
+            let up = (target.y - feet.y + 0.5 * gravity * candidate * candidate) / candidate
+            if feet.y + max(0, up) * max(0, up) / (2 * gravity) <= top || step == 8 {
+                time = max(0.3, candidate)
+                break
+            }
+        }
+        leavePerch()
+        letGo = nil
+        soaring = true
+        velocity = CGVector(dx: (target.x - feet.x) / time, dy: (target.y - feet.y + 0.5 * gravity * time * time) / time)
+        airborne = true
         walkTarget = nil
         danceAnchor = nil
-        landingY = target.y
+        landing = spot
         duck.facingLeft = target.x < feet.x
         duck.set(.soaring)
         feelings.feel(.flew)
         Sounds.shared.play(.whoosh)
+    }
+
+    private func floor(at x: CGFloat) -> Spot {
+        let visible = screen.visibleFrame
+        return Spot(x: min(max(x, visible.minX + 60), visible.maxX - 60), top: visible.minY)
     }
 
     /// Stays on top of the window it's standing on, and falls off when it moves or goes away.
@@ -330,7 +452,7 @@ final class DuckWindow {
             return
         }
         guard let window = Desk.window(current.id), feet.x > window.frame.minX, feet.x < window.frame.maxX else {
-            fallOff(say: .windowGone, push: 0)
+            fallOff(say: Desk.window(current.id) == nil && Date().timeIntervalSince(lastDeskSwitch) < 1.5 ? .newDesk : .windowGone, push: 0)
             return
         }
         let moved = CGVector(dx: window.frame.minX - current.frame.minX, dy: window.frame.maxY - current.frame.maxY)
@@ -343,7 +465,8 @@ final class DuckWindow {
     }
 
     private func fallOff(say moment: Moment?, push: CGFloat) {
-        perch = nil
+        leavePerch()
+        landing = nil
         airborne = true
         soaring = false
         velocity = CGVector(dx: max(-500, min(500, push)), dy: 120)
@@ -354,19 +477,25 @@ final class DuckWindow {
     // MARK: Walking, dancing and antics
 
     private func walk(_ dt: TimeInterval) {
-        guard let target = walkTarget, duck.activity == .idle || duck.activity == .walking else {
+        guard let target = walkTarget, [.idle, .walking, .hanging].contains(duck.activity) else {
             if duck.activity == .walking { duck.set(.idle) }
+            moonwalking = false
             return
         }
         let distance = target - feet.x
         if abs(distance) < 2 {
             walkTarget = nil
+            moonwalking = false
             duck.set(.idle)
             return
         }
-        duck.facingLeft = distance < 0
-        duck.set(.walking)
-        feet.x += (distance < 0 ? -1 : 1) * min(abs(distance), 50 * dt)
+        // Moonwalking faces the other way. Hanging, it shuffles along the edge wing over wing.
+        duck.facingLeft = moonwalking ? distance > 0 : distance < 0
+        if !hanging { duck.set(.walking) }
+        // Drunk, it lurches: fast, slow, fast.
+        let lurch = duck.tipsy >= 2 ? 0.4 + 1.2 * abs(sin(ProcessInfo.processInfo.systemUptime * 2.5)) : 1
+        let speed: CGFloat = hanging ? 28 : (moonwalking ? 40 : 50)
+        feet.x += (distance < 0 ? -1 : 1) * min(abs(distance), speed * lurch * dt)
     }
 
     /// While dancing, sways side to side on the beat; going bananas, it really moves.
@@ -396,6 +525,28 @@ final class DuckWindow {
         guard prefs.wander, duck.isFree, duck.activity != .petted, duck.bubble == nil else { return }
         if duck.activity == .sulking { duck.set(.idle) }
 
+        // Hanging off a window: shuffle along it a bit, or get tired and let go.
+        if hanging {
+            if Bool.random() {
+                letGoOfTheEdge()
+                if Int.random(in: 0..<2) == 0 { say(.letGo) }
+            } else {
+                walkSomewhere()
+            }
+            return
+        }
+        // Told to sit, it stays put and fidgets.
+        if duck.staying {
+            switch Int.random(in: 0..<6) {
+            case 0: duck.yawn()
+            case 1: duck.spawn(.heart)
+            case 2: duck.sneeze(); Sounds.shared.play(.pop)
+            case 3: duck.quack(); Sounds.shared.play(.quack)
+            default: duck.facingLeft.toggle()
+            }
+            return
+        }
+
         switch feelings.mood {
         case .grumpy where Bool.random():
             duck.facingLeft.toggle()
@@ -422,14 +573,23 @@ final class DuckWindow {
         }
 
         let roll = Int.random(in: 0..<100)
-        if roll < 40, flyToAWindow() {
+        if roll < 38, flyToAWindow() {
             if Int.random(in: 0..<4) == 0 { say(.takeOff) }
-        } else if roll < 52, perch != nil {
+        } else if roll < 50, perch != nil {
             // Back down to the floor.
-            flyTo(CGPoint(x: feet.x + (duck.facingLeft ? -140 : 140), y: screen.visibleFrame.minY))
-        } else if roll < 80 {
+            flyTo(floor(at: feet.x + (duck.facingLeft ? -140 : 140)))
+        } else if roll < 72 {
             walkSomewhere()
-        } else if roll < 90 {
+        } else if roll < 79, duck.tipsy < 3 {
+            walkSomewhere()
+            moonwalking = walkTarget != nil
+            duck.spawn(.sparkle)
+            if Int.random(in: 0..<3) == 0 { say(.moonwalk) }
+        } else if roll < 84 {
+            duck.sneeze()
+            Sounds.shared.play(.pop)
+            if Int.random(in: 0..<3) == 0 { after(1) { [weak self] in self?.say(.sneeze) } }
+        } else if roll < 91 {
             duck.set(.celebrating)
             duck.spawn(.note)
             after(1.4) { [weak self] in if self?.duck.activity == .celebrating { self?.duck.set(.idle) } }
@@ -444,6 +604,8 @@ final class DuckWindow {
 
     /// Dances (or goes bananas) for a while, whatever's playing.
     func dance(_ style: Duck.Activity, for seconds: TimeInterval) {
+        standUp(saying: false)
+        if hanging { letGoOfTheEdge() }
         walkTarget = nil
         duck.beat = 0.5
         duck.set(style)
@@ -453,11 +615,14 @@ final class DuckWindow {
 
     /// Flies to the top of some window, or back down to the floor if there isn't one.
     func flyAround() {
-        if !flyToAWindow() { flyTo(CGPoint(x: feet.x + (duck.facingLeft ? -200 : 200), y: screen.visibleFrame.minY)) }
+        standUp(saying: false)
+        if !flyToAWindow() { flyTo(floor(at: feet.x + (duck.facingLeft ? -200 : 200))) }
     }
 
     func jump() {
         guard !airborne else { return }
+        standUp(saying: false)
+        leavePerch()
         duck.set(.idle)
         soaring = false
         airborne = true
@@ -466,17 +631,102 @@ final class DuckWindow {
         Sounds.shared.play(.quack)
     }
 
-    /// Comes over to where the mouse is: walks if it's along the floor, flies if it's up somewhere.
+    /// Comes over to where the mouse is: walks if it's along the floor, flies if it's up somewhere, and pops over
+    /// if it's on another screen.
     func comeToMouse() {
         let mouse = NSEvent.mouseLocation
-        if abs(mouse.y - feet.y) < 120, perch == nil {
+        guard !dragging else { return }
+        if let there = NSScreen.screens.first(where: { $0.frame.contains(mouse) }), there != screen {
+            dropIn(on: there, x: mouse.x)
+            say(.summoned)
+            return
+        }
+        if abs(mouse.y - feet.y) < 120, perch == nil, !airborne {
             walkTarget = min(max(mouse.x, screen.visibleFrame.minX + 60), screen.visibleFrame.maxX - 60)
         } else {
-            let floor = screen.visibleFrame.minY
-            let target = Desk.windows().first { $0.frame.minX < mouse.x && mouse.x < $0.frame.maxX && $0.frame.maxY < mouse.y + 200
-                && $0.frame.maxY < screen.visibleFrame.maxY - spriteHeight * 0.8 }
-            flyTo(CGPoint(x: mouse.x, y: target?.frame.maxY ?? floor))
+            let window = Desk.windows().first { $0.frame.minX < mouse.x && mouse.x < $0.frame.maxX && $0.frame.maxY < mouse.y + 200 }
+            flyTo(window.flatMap { spot(on: $0, x: mouse.x) } ?? floor(at: mouse.x))
         }
+    }
+
+    /// Pops out of thin air at the top of a screen and drops to the floor.
+    private func dropIn(on screen: NSScreen, x: CGFloat) {
+        leavePerch()
+        letGo = nil
+        let frame = screen.visibleFrame
+        feet = CGPoint(x: min(max(x, frame.minX + 60), frame.maxX - 60), y: ceiling(of: screen))
+        velocity = .zero
+        landing = nil
+        onLand = nil
+        walkTarget = nil
+        soaring = false
+        airborne = true
+        duck.set(.flying)
+        duck.spawn(.puff)
+        place()
+    }
+
+    /// Sits down where it is and stays there until it's told something else. Hanging off a window, it lets go first.
+    func sit() {
+        walkTarget = nil
+        moonwalking = false
+        if hanging { letGoOfTheEdge() }
+        duck.stay(true)
+        if duck.isFree || duck.isDancing || duck.activity == .typing { duck.set(.idle) }
+        duck.say(Lines.pick(.sit, prefs.personality, fill: ["user": prefs.userName]))
+    }
+
+    /// Gets back up after sitting.
+    func standUp(saying: Bool = true) {
+        guard duck.staying else { return }
+        duck.stay(false)
+        duck.hop()
+        if saying { duck.say(Lines.pick(.stand, prefs.personality, fill: ["user": prefs.userName])) }
+    }
+
+    var isSitting: Bool { duck.staying }
+
+    func toggleSit() {
+        if duck.staying { standUp() } else { sit() }
+    }
+
+    func nap() {
+        guard !airborne, !dragging else { return }
+        walkTarget = nil
+        duck.set(.sleeping)
+    }
+
+    /// Bring the duck to the screen the mouse is on, or over to the mouse if it's already there.
+    func summon() {
+        if !isVisible { show() }
+        standUp(saying: false)
+        comeToMouse()
+    }
+
+    private func letGoOfTheEdge() {
+        guard hanging else { return }
+        fallOff(say: nil, push: duck.facingLeft ? -40 : 40)
+    }
+
+    private func desktopChanged() {
+        lastDeskSwitch = Date()
+        guard isVisible, prefs.allDesktops else { return }
+        // A window it was on is now on the other desktop; ride() notices and it falls. On the floor, it looks about.
+        after(0.6) { [weak self] in
+            guard let self, self.perch == nil, !self.airborne, self.duck.isFree,
+                  Date().timeIntervalSince(self.lastDeskQuip) > 90, Int.random(in: 0..<3) == 0 else { return }
+            self.lastDeskQuip = Date()
+            self.duck.spawn(.question)
+            self.duck.facingLeft.toggle()
+            self.say(.newDesk)
+        }
+    }
+
+    /// A screen was plugged in, unplugged or rearranged. If its screen went, the duck drops in on the main one.
+    private func screensChanged() {
+        litter.layout()
+        guard isVisible, !onAScreen(feet), let main = NSScreen.main ?? NSScreen.screens.first else { return }
+        dropIn(on: main, x: main.visibleFrame.midX)
     }
 
     /// Picks the top of a visible window and flies there. Returns false if there's nowhere good to go.
@@ -484,14 +734,13 @@ final class DuckWindow {
     private func flyToAWindow() -> Bool {
         let windows = Desk.windows()
         let visible = screen.visibleFrame
-        var spots: [CGPoint] = []
-        for (index, window) in windows.enumerated() where window.id != perch?.id {
-            let top = window.frame.maxY
-            guard top < visible.maxY - spriteHeight * 0.8, top > visible.minY + 60, window.frame.width > 260 else { continue }
+        var spots: [Spot] = []
+        for (index, window) in windows.enumerated() where window.id != perch?.id && window.frame.width > 260 {
             let x = CGFloat.random(in: (window.frame.minX + 80)...(window.frame.maxX - 80))
-            let edge = CGPoint(x: x, y: top - 2)
-            guard visible.contains(CGPoint(x: x, y: top)), !windows[..<index].contains(where: { $0.frame.contains(edge) }) else { continue }
-            spots.append(CGPoint(x: x, y: top))
+            let edge = CGPoint(x: x, y: window.frame.maxY - 2)
+            guard visible.contains(edge), let spot = spot(on: window, x: x),
+                  !windows[..<index].contains(where: { $0.frame.contains(edge) }) else { continue }
+            spots.append(spot)
         }
         guard let spot = spots.randomElement() else { return false }
         flyTo(spot)
@@ -530,20 +779,20 @@ final class DuckWindow {
                 }
             }
         }
-        guard let window else { return peckAndClose() }
-        let top = min(window.frame.maxY, screen.visibleFrame.maxY - spriteHeight * 0.85)
-        let x = min(max(window.frame.minX + 170, screen.visibleFrame.minX + 60), window.frame.maxX - 80)
-        flyTo(CGPoint(x: x, y: top))
+        let x = window.map { min(max($0.frame.minX + 170, screen.visibleFrame.minX + 60), $0.frame.maxX - 80) } ?? feet.x
+        guard let window, let spot = spot(on: window, x: x) else { return peckAndClose() }
+        duck.stay(false)
+        flyTo(spot)
         onLand = peckAndClose
     }
 
-    /// Flies over to the front window and stands on it, then does `work`.
+    /// Flies over to the front window and stands on it (or hangs off it), then does `work`.
     func visitFrontWindow(then work: @escaping @MainActor () -> Void) {
-        guard let window = Desk.frontWindow(), window.frame.maxY < screen.visibleFrame.maxY - spriteHeight * 0.8 else {
+        guard let window = Desk.frontWindow(),
+              let spot = spot(on: window, x: min(max(feet.x, window.frame.minX + 80), window.frame.maxX - 80)) else {
             return work()
         }
-        let x = min(max(feet.x, window.frame.minX + 80), window.frame.maxX - 80)
-        flyTo(CGPoint(x: x, y: window.frame.maxY))
+        flyTo(spot)
         onLand = work
     }
 
@@ -579,7 +828,7 @@ final class DuckWindow {
                 feelings.feel(.typedALot)
                 if Int.random(in: 0..<4) == 0 { say(.typingDone) }
             }
-        } else if let since = typingSince, now.timeIntervalSince(since) > 2, duck.activity == .idle || duck.activity == .walking {
+        } else if let since = typingSince, now.timeIntervalSince(since) > 2, [.idle, .walking, .sitting].contains(duck.activity) {
             walkTarget = nil
             duck.set(.typing)
         }
@@ -588,12 +837,13 @@ final class DuckWindow {
     private func noticeAway() {
         let idle = Desk.idleSeconds
         let sleepAfter: TimeInterval = feelings.mood == .sleepy ? 60 : 180
-        if idle > sleepAfter, duck.activity == .idle || duck.activity == .petted || duck.activity == .sulking {
+        if idle > sleepAfter, [.idle, .petted, .sulking, .sitting].contains(duck.activity) {
             duck.set(.sleeping)
             feelings.feel(.userLeft)
         } else if idle < 2, duck.activity == .sleeping {
             duck.set(.idle)
             duck.hop()
+            duck.wave()
             feelings.feel(.userCameBack)
             say(.wake)
         }
@@ -658,6 +908,11 @@ final class DuckWindow {
         duck.beat = 60 / (playing.bpm ?? 120)
         feelings.feel(.music)
 
+        // Told to sit, or hanging on, it just enjoys it where it is.
+        if duck.staying || hanging {
+            if Int.random(in: 0..<2) == 0 { duck.spawn(.note) }
+            return
+        }
         let canDance = duck.isDancing || duck.isFree
         guard canDance, !airborne, !dragging else { return }
         walkTarget = nil
@@ -692,6 +947,11 @@ final class DuckWindow {
             return
         }
         if talk.isOpen { return }
+        // Far too drunk to be poked.
+        if booze.stage == .wasted, prefs.machineGun {
+            if now.timeIntervalSince(lastBurst) > 1.5 { openFire() }
+            return
+        }
         pokes = pokes.filter { now.timeIntervalSince($0) < 3 } + [now]
         Sounds.shared.play(.quack)
         duck.quack()
@@ -722,10 +982,12 @@ final class DuckWindow {
             dragOffset = CGVector(dx: feet.x - mouse.x, dy: feet.y - mouse.y)
             dragSamples = []
             walkTarget = nil
-            perch = nil
+            moonwalking = false
+            leavePerch()
+            letGo = nil
             airborne = false
             soaring = false
-            landingY = nil
+            landing = nil
             onLand = nil
             hoverSince = nil
             duck.set(.dragged)
@@ -758,6 +1020,169 @@ final class DuckWindow {
         }
     }
 
+    // MARK: Pets, treats and the drink
+
+    /// The mouse resting on the duck. A while of that is a pet, unless it's too drunk to be touched.
+    private func beingPetted(for seconds: TimeInterval) {
+        if booze.stage == .wasted {
+            guard seconds > 0.3, duck.isFree || duck.activity == .sleeping, Date().timeIntervalSince(lastBurst) > 4 else { return }
+            if prefs.machineGun {
+                openFire()
+            } else {
+                lastBurst = Date()
+                duck.spawn(.anger)
+                say(.noPets)
+            }
+            return
+        }
+        guard seconds > 1.2, duck.isFree, duck.activity != .petted else { return }
+        let wasDrunk = booze.stage > .sober
+        duck.set(.petted)
+        feelings.feel(.petted)
+        booze.petted()
+        duck.tipsy = booze.stage.rawValue
+        if wasDrunk, Int.random(in: 0..<2) == 0 {
+            say(.petSobers)
+        } else if Int.random(in: 0..<3) == 0 {
+            say(.pet)
+        }
+    }
+
+    /// Cracks one open if it's due one and has nothing better to do.
+    private func drinkIfThirsty() {
+        booze.pass(1, youreAround: Desk.idleSeconds < 120, pace: prefs.drinking)
+        if duck.activity == .sleeping { booze.sleep(1) }
+        duck.tipsy = booze.stage.rawValue
+        guard booze.thirsty, !airborne, !dragging, !talk.isOpen, [.idle, .walking, .sitting].contains(duck.activity) else { return }
+        drink(given: false)
+    }
+
+    private func drink(given: Bool) {
+        walkTarget = nil
+        moonwalking = false
+        duck.set(.drinking)
+        Sounds.shared.play(.canOpen)
+        after(2.3) { [weak self] in
+            guard let self, self.duck.activity == .drinking else { return }
+            let before = self.booze.stage
+            self.booze.drank()
+            self.duck.tipsy = self.booze.stage.rawValue
+            self.feelings.feel(.drank)
+            self.duck.set(.idle)
+            // The empty goes over its shoulder.
+            let toss = (self.duck.facingLeft ? 1 : -1) * CGFloat.random(in: 30...90)
+            self.after(0.25) { [weak self] in
+                guard let self else { return }
+                self.litter.drop(near: self.feet.x + toss, on: self.screen)
+                Sounds.shared.play(.clink)
+            }
+            switch self.booze.stage {
+            case let now where now != before && now == .tipsy: self.say(.gotTipsy)
+            case let now where now != before && now == .drunk: self.say(.gotDrunk)
+            case let now where now != before && now == .wasted: self.say(.gotWasted)
+            default: if given || Int.random(in: 0..<3) == 0 { self.say(.beer) }
+            }
+        }
+    }
+
+    /// Something to eat or drink, from you.
+    func give(_ treat: Treat) {
+        if !isVisible { show() }
+        guard !airborne, !dragging, duck.activity != .shooting else { return }
+        walkTarget = nil
+        moonwalking = false
+        switch treat {
+        case .beer:
+            guard booze.beers < Booze.most else {
+                duck.say(Lines.pick(.tooMuch, prefs.personality))
+                return
+            }
+            drink(given: true)
+        case .bread:
+            duck.set(.eating)
+            Sounds.shared.play(.pop)
+            after(2.2) { [weak self] in
+                guard let self, self.duck.activity == .eating else { return }
+                self.booze.soberUp(by: 1)
+                self.duck.tipsy = self.booze.stage.rawValue
+                self.feelings.feel(.fed)
+                self.duck.spawn(.heart)
+                self.duck.set(.celebrating)
+                self.duck.say(Lines.pick(.bread, self.prefs.personality, fill: ["user": self.prefs.userName]))
+                self.after(1.3) { [weak self] in if self?.duck.activity == .celebrating { self?.duck.set(.idle) } }
+            }
+        case .coffee:
+            duck.set(.sipping)
+            after(2.4) { [weak self] in
+                guard let self, self.duck.activity == .sipping else { return }
+                let wasDrunk = self.booze.stage > .sober
+                self.booze.soberUp(by: 3)
+                self.duck.tipsy = self.booze.stage.rawValue
+                self.feelings.feel(.caffeinated)
+                self.duck.spawn(.exclaim)
+                self.duck.hop()
+                self.duck.set(.idle)
+                self.duck.say(Lines.pick(wasDrunk ? .soberedUp : .coffee, self.prefs.personality, fill: ["user": self.prefs.userName]))
+            }
+        }
+    }
+
+    /// Picks up the empty cans.
+    func cleanUpCans() {
+        guard !litter.isEmpty else { return }
+        litter.clear()
+        Sounds.shared.play(.pop)
+        duck.spawn(.sparkle)
+        duck.say(Lines.pick(booze.stage > .sober ? .cansGoneDrunk : .cansGone, prefs.personality))
+    }
+
+    /// Too drunk to be touched: out comes the machine gun, and the cursor gets blown across the screen.
+    private func openFire() {
+        lastBurst = Date()
+        hoverSince = nil
+        walkTarget = nil
+        moonwalking = false
+        let mouse = NSEvent.mouseLocation
+        duck.facingLeft = mouse.x < feet.x
+        duck.set(.shooting)
+        Sounds.shared.play(.machineGun)
+        feelings.feel(.firedGun)
+        duck.say(Lines.pick(.machineGun, prefs.personality, fill: ["user": prefs.userName]), hold: 3)
+
+        // Straight away from the duck, a good long way, staying on a screen.
+        let head = CGPoint(x: feet.x, y: feet.y + spriteHeight * 0.45)
+        var away = CGVector(dx: mouse.x - head.x, dy: mouse.y - head.y)
+        let length = hypot(away.dx, away.dy)
+        away = length < 1 ? CGVector(dx: duck.facingLeft ? -1 : 1, dy: 0.3) : CGVector(dx: away.dx / length, dy: away.dy / length)
+        var target = CGPoint(x: mouse.x + away.dx * 520, y: mouse.y + away.dy * 520)
+        if !onAScreen(target) {
+            let frame = (NSScreen.screens.first { $0.frame.contains(mouse) } ?? screen).frame.insetBy(dx: 12, dy: 12)
+            target = CGPoint(x: min(max(target.x, frame.minX), frame.maxX), y: min(max(target.y, frame.minY), frame.maxY))
+        }
+        shove = (mouse, target, ProcessInfo.processInfo.systemUptime + 0.12)
+        after(1.3) { [weak self] in if self?.duck.activity == .shooting { self?.duck.set(.idle) } }
+    }
+
+    /// Moves the cursor a little further along its way, juddering as the bullets hit it.
+    private func blowCursorAway() {
+        guard let shove else { return }
+        let progress = (ProcessInfo.processInfo.systemUptime - shove.start) / 0.45
+        guard progress >= 0 else { return }
+        let t = CGFloat(min(1, progress))
+        let eased = 1 - pow(1 - t, 3)
+        let judder = 10 * (1 - t) * CGFloat(sin(Double(t) * 45))
+        let along = CGVector(dx: shove.to.x - shove.from.x, dy: shove.to.y - shove.from.y)
+        let length = max(1, hypot(along.dx, along.dy))
+        let point = CGPoint(x: shove.from.x + along.dx * eased - along.dy / length * judder,
+                            y: shove.from.y + along.dy * eased + along.dx / length * judder)
+        // The cursor is placed from the top left of the main screen; AppKit counts from the bottom left.
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        CGWarpMouseCursorPosition(CGPoint(x: point.x, y: mainHeight - point.y))
+        // Warping freezes the mouse for a moment unless it's tied back to the cursor.
+        CGAssociateMouseAndMouseCursorPosition(1)
+        if t >= 1 { self.shove = nil }
+    }
+
     // MARK: Clicks
 
     /// The panels only take clicks over the duck and its bubble; everywhere else they go to the window behind.
@@ -784,7 +1209,8 @@ final class DuckWindow {
     // MARK: Helpers
 
     private func say(_ moment: Moment, fill: [String: String] = [:]) {
-        guard !duck.isBusy || [.thrown, .windowGone, .grabbed, .windowYanked, .takeOff].contains(moment), !talk.isOpen else { return }
+        guard !duck.isBusy || [.thrown, .windowGone, .grabbed, .windowYanked, .takeOff, .newDesk, .summoned].contains(moment),
+              !talk.isOpen else { return }
         duck.say(Lines.pick(moment, prefs.personality, fill: fill.merging(["user": prefs.userName]) { $1 }))
     }
 

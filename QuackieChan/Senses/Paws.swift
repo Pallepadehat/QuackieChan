@@ -12,12 +12,14 @@ nonisolated enum Deed: Equatable, Sendable {
     case darkMode(Bool?)
     case remind(minutes: Int, about: String)
     /// Things the duck does itself, no permission needed.
-    case dance, nap, shoot, quack, fly, jump, bananas, comeHere
+    case dance, nap, shoot, quack, fly, jump, bananas, comeHere, sit, stand
+    /// Treats.
+    case bread, coffee, beer
 
     /// Things the duck does with its own body, not your Mac.
     var isTrick: Bool {
         switch self {
-        case .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .remind: true
+        case .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer, .remind: true
         default: false
         }
     }
@@ -99,6 +101,12 @@ enum Paws {
         case "jump", "hop", "jump around", "hop op": return [.jump]
         case "go bananas", "bananas", "go crazy", "lose it", "party", "flip me off", "middle finger", "gå amok": return [.bananas]
         case "come here", "come", "come to me", "over here", "kom her": return [.comeHere]
+        case "sit", "sit down", "stay", "sit and stay", "sit there", "sit still", "good duck sit", "sid", "sæt dig", "bliv", "dæk":
+            return [.sit]
+        case "stand", "stand up", "get up", "up", "you can get up", "at ease", "rejs dig", "op", "stå op": return [.stand]
+        case "bread", "have some bread", "have bread", "eat", "eat something", "have a snack", "snack", "brød", "spis": return [.bread]
+        case "coffee", "have a coffee", "have some coffee", "drink coffee", "drink some coffee", "sober up", "kaffe": return [.coffee]
+        case "beer", "have a beer", "drink a beer", "have a drink", "cheers", "øl", "tag en øl", "skål": return [.beer]
         default: break
         }
 
@@ -138,6 +146,7 @@ enum Paws {
         if mentions(["fly ", "fly!", "flying", "flyv"]) || text.hasSuffix("fly") { return [.fly] }
         if mentions(["quack for me", "say quack", "quack!"]) { return [.quack] }
         if mentions(["come here", "come over", "kom her"]) { return [.comeHere] }
+        if mentions(["sit down", "sit!", "sæt dig"]) { return [.sit] }
         if mentions(["quieter", "too loud", "volume down", "turn it down", "lower the volume", "skru ned"]) { return [.quieter] }
         if mentions(["louder", "can't hear", "volume up", "turn it up", "skru op"]) { return [.louder] }
         return []
@@ -238,7 +247,7 @@ enum Paws {
                 "tell application \"System Events\" to tell appearance preferences to set dark mode to \(value)")
             return result == nil ? Outcome(moment: .cantDoThat, failure: "macOS didn't let me. Allow Quackie Chan to control System Events.")
                 : Outcome(moment: .didIt)
-        case .remind, .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere:
+        case .remind, .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer:
             return Outcome(moment: .didIt)  // the director handles these itself
         }
     }

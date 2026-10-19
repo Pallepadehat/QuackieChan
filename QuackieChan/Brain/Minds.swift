@@ -249,7 +249,7 @@ final class Minds {
         DO: remind me in 10 minutes to stretch
         Things you can do yourself, any time it fits (no permission needed):
         DO: shoot (fire your tiny gun at them) | DO: quack | DO: dance | DO: go bananas | DO: fly | DO: jump
-        DO: come here | DO: nap
+        DO: come here | DO: nap | DO: sit | DO: stand up
         Never do things on their Mac they didn't ask for.
 
         Examples:
@@ -409,6 +409,9 @@ final class Minds {
         case "fly": return .fly
         case "jump": return .jump
         case "bananas": return .bananas
+        case "sit": return .sit
+        case "stand": return .stand
+        case "comehere": return .comeHere
         default: return nil
         }
     }

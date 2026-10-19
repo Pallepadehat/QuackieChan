@@ -38,7 +38,10 @@ struct ArtTests {
     @Test func everyDuckAndPosePaints() {
         let poses = [Pose(), Pose(eyes: .angry, gun: true, muzzleFlash: true), Pose(legs: .tucked, laptop: true),
                      Pose(eyes: .sad, dealWithIt: true, fingers: true, pump: 2), Pose(eyes: .sleepy, wing: .up),
-                     Pose(eyes: .shocked, legs: .dangling, wing: .up), Pose(eyes: .blink, bodyY: 3, legs: .tucked)]
+                     Pose(eyes: .shocked, legs: .dangling, wing: .up), Pose(eyes: .blink, bodyY: 3, legs: .tucked),
+                     Pose(eyes: .drunk, wing: .forward, beer: 2, flushed: true, monkHair: 1),
+                     Pose(eyes: .angry, beakOpen: true, wing: .forward, muzzleFlash: true, flushed: true, monkHair: 2, machineGun: true),
+                     Pose(wing: .forward, mug: true), Pose(wing: .forward, beer: 1), Pose(beakOpen: true, bread: true)]
         for skin in DuckSkin.all {
             for pose in poses {
                 let pixels = DuckArt.paint(skin, pose)
@@ -49,6 +52,36 @@ struct ArtTests {
                 #expect(pixels.joined().compactMap { $0 }.allSatisfy { palette[$0] != nil })
             }
         }
+    }
+
+    @Test func cansPaintInTheDucksColours() {
+        let palette = Plumage.classic.palette
+        for kind in 0..<CanArt.kinds {
+            let rows = CanArt.rows(kind)
+            #expect(Set(rows.map(\.count)).count == 1)
+            #expect(rows.joined().allSatisfy { $0 == "." || palette[$0] != nil })
+        }
+    }
+
+    @Test func monkHairKnocksTheHatOff() {
+        let skin = DuckSkin.with(id: "merlin")
+        let hatted = DuckArt.paint(skin, Pose()).joined().filter { $0 == "B" }.count
+        let monk = DuckArt.paint(skin, Pose(monkHair: 1)).joined().filter { $0 == "B" }.count
+        #expect(hatted > 0 && monk == 0)
+    }
+}
+
+struct DrunkTests {
+    @Test func getsWorseWithEveryBeer() {
+        #expect(Booze.stage(for: 0) == .sober)
+        #expect(Booze.stage(for: 2) == .tipsy)
+        #expect(Booze.stage(for: 4) == .drunk)
+        #expect(Booze.stage(for: 9) == .wasted)
+    }
+
+    @Test @MainActor func slursOnlyWhenProperlyDrunk() {
+        #expect(Duck.slur("Yes sir", 1) == "Yes sir")
+        #expect(Duck.slur("Yes sir", 2).hasPrefix("Yesh shir"))
     }
 }
 
@@ -119,6 +152,18 @@ struct CommandTests {
         #expect(Paws.parse("Shoot me!") == [.shoot])
         #expect(Paws.parse("go bananas") == [.bananas])
         if case .quit = Paws.parse("shoot spotify")?.first {} else { Issue.record("\"shoot spotify\" should quit Spotify") }
+    }
+
+    @Test func sitsAndStaysAndGetsUp() {
+        #expect(Paws.parse("Sit!") == [.sit])
+        #expect(Paws.parse("sit down please") == [.sit])
+        #expect(Paws.parse("stay") == [.sit])
+        #expect(Paws.parse("sæt dig") == [.sit])
+        #expect(Paws.parse("stand up") == [.stand])
+        #expect(Paws.parse("have a coffee") == [.coffee])
+        #expect(Paws.parse("have some bread") == [.bread])
+        #expect(Minds.parseAnswer("Fine. Sitting.\nDO: sit").deeds == [.sit])
+        #expect(Deed.sit.isTrick && Deed.beer.isTrick)
     }
 
     @Test func catchesObviousRequests() {

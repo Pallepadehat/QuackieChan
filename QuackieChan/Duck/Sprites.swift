@@ -21,7 +21,7 @@ nonisolated struct RGB: Hashable, Sendable {
 
 /// Everything about how the duck looks in one frame.
 nonisolated struct Pose: Hashable, Sendable {
-    enum Eyes: Hashable, Sendable { case open, blink, angry, happy, shocked, dizzy, sad, sleepy }
+    enum Eyes: Hashable, Sendable { case open, blink, angry, happy, shocked, dizzy, sad, sleepy, drunk }
     enum Legs: Hashable, Sendable { case stand, stepA, stepB, tucked, dangling }
     enum Wing: Hashable, Sendable { case rest, up, forward, typingA, typingB }
 
@@ -48,6 +48,18 @@ nonisolated struct Pose: Hashable, Sendable {
     var fingers = false
     /// Which hand is pumped up on this beat: 0 both level, 1 left up, 2 right up.
     var pump = 0
+    /// A can of beer: 0 none, 1 held in the wing, 2 tipped up to the beak.
+    var beer = 0
+    /// Red in the face from the beer.
+    var flushed = false
+    /// The hair that grows when it's been drinking: 0 none, 1 a neat monk's ring, 2 a wild mess.
+    var monkHair = 0
+    /// A machine gun, side on, with an ammo belt. For when it's had far too many.
+    var machineGun = false
+    /// A mug of coffee at the beak.
+    var mug = false
+    /// A slice of bread at the beak.
+    var bread = false
 }
 
 // MARK: - Skins
@@ -98,6 +110,9 @@ nonisolated enum Plumage: String, CaseIterable, Codable, Identifiable, Sendable 
             // The gun, the hand holding it, and the laptop.
             "g": RGB(0xDCE0E6), "n": RGB(0xA9AFB8), "N": RGB(0x6E7580), "H": RGB(0xE3A97F), "h": RGB(0xB97A55),
             "l": RGB(0x9AA1AE), "e": RGB(0x5F6675), "X": RGB(0xFFF4B0), "x": RGB(0xFFB13B),
+            // Beer cans, the monk's hair, a red face, coffee and bread.
+            "A": RGB(0xF2C14E), "a": RGB(0xC08A1E), "T": RGB(0x7A4B2A), "t": RGB(0x4E2E18), "V": RGB(0xE8505B),
+            "C": RGB(0x5B3A1E), "M": RGB(0xF4EFE6), "Z": RGB(0xF0C27A), "z": RGB(0xA8692A),
         ]
         switch self {
         case .classic: break
@@ -230,6 +245,14 @@ nonisolated enum DuckArt {
     static let muzzle = CGPoint(x: 47, y: 35)
     /// Where the top of the head is, for things that float above it (Zzz, hearts).
     static let headTop = CGPoint(x: 26, y: 14)
+    /// Where the machine gun's muzzle is.
+    static let barrel = CGPoint(x: 56, y: 40)
+    /// Rows from the top of the canvas to the feet, which stand two rows above its bottom.
+    static let feetRow = canvasHeight - 2
+    /// How far above its feet the top of its head is, in art pixels, so it knows when there's room to stand.
+    static let standingHeight = feetRow - 16
+    /// How far below the edge its feet hang when it holds on to a window's top by its wing.
+    static let hangDrop = feetRow - 30
 
     static func paint(_ skin: DuckSkin, _ pose: Pose) -> [[Character?]] {
         var canvas = PixelCanvas(width: canvasWidth, height: canvasHeight)
@@ -254,16 +277,28 @@ nonisolated enum DuckArt {
         paintWing(&canvas, pose)
         paintBeak(&canvas, pose, hx: hx, hy: hy)
         paintEyes(&canvas, pose, hx: hx, hy: hy)
-        if pose.blush || pose.eyes == .happy { canvas.rect(hx + 1, hy + 1, hx + 2, hy + 1, "p", .face) }
+        if pose.flushed {
+            canvas.rect(hx, hy + 1, hx + 3, hy + 2, "V", .face)
+        } else if pose.blush || pose.eyes == .happy {
+            canvas.rect(hx + 1, hy + 1, hx + 2, hy + 1, "p", .face)
+        }
         if pose.sweat {
             canvas.stamp([".c", "cc", "cc"], hx - 8, hy - 3, .effect)
         }
-        // Hats sit two pixels higher than the eye line, except sunglasses, which go over it.
-        paintHat(&canvas, skin.hat, hx: hx, hy: skin.hat == .shades ? hy : hy - 2)
+        // Hats sit two pixels higher than the eye line, except sunglasses, which go over it. The monk's hair
+        // knocks any hat off but the sunglasses.
+        if pose.monkHair > 0 { paintMonkHair(&canvas, wild: pose.monkHair > 1, hx: hx, hy: hy) }
+        if pose.monkHair == 0 || skin.hat == .shades {
+            paintHat(&canvas, skin.hat, hx: hx, hy: skin.hat == .shades ? hy : hy - 2)
+        }
         if pose.dealWithIt { paintDealWithIt(&canvas, hx: hx, hy: hy) }
         if pose.laptop { paintLaptop(&canvas) }
         if pose.fingers { paintFingers(&canvas, bodyY: pose.bodyY, pump: pose.pump) }
         if pose.gun { paintGun(&canvas, flash: pose.muzzleFlash) }
+        if pose.machineGun { paintMachineGun(&canvas, flash: pose.muzzleFlash, bodyY: pose.bodyY) }
+        if pose.beer > 0 { paintBeer(&canvas, sipping: pose.beer > 1, hx: hx, hy: hy, bodyY: pose.bodyY) }
+        if pose.mug { paintMug(&canvas, hx: hx, hy: hy) }
+        if pose.bread { paintBread(&canvas, hx: hx, hy: hy) }
 
         canvas.outline()
 
@@ -350,6 +385,13 @@ nonisolated enum DuckArt {
         case .sleepy:
             canvas.rect(ex - 1, ey + 1, ex + 2, ey + 1, "E", .face)
             canvas.rect(ex, ey + 2, ex + 1, ey + 2, "E", .face)
+        case .drunk:
+            // A heavy lid, a bloodshot white, and a pupil that's wandered off toward the beak.
+            canvas.rect(ex - 1, ey, ex + 2, ey, "E", .face)
+            canvas.rect(ex, ey + 1, ex + 2, ey + 2, "w", .face)
+            canvas.set(ex, ey + 2, "V", .face)
+            let x = ex + 1 + max(0, min(1, pose.lookX))
+            canvas.rect(x, ey + 1, x, ey + 2, "E", .face)
         }
     }
 
@@ -421,6 +463,84 @@ nonisolated enum DuckArt {
             canvas.rect(hx - 10, hy - 7, hx + 8, hy - 6, "K", .hat)
         }
         canvas.seam(.hat, onto: [.head])
+    }
+
+    /// The hair a duck grows after a few beers: a monk's ring round the back and sides of its head, with a shiny
+    /// bald crown on top. Wild, it sticks out everywhere and one sad strand is combed over the top.
+    private static func paintMonkHair(_ canvas: inout PixelCanvas, wild: Bool, hx: Int, hy: Int) {
+        // A band of hair round the head just above the eyes, thickening down the back of the head.
+        for y in (hy - 6)...(hy + 3) {
+            for x in (hx - 10)...(hx + 2) where canvas.part(x, y) == .head {
+                let ring = y <= hy - 5
+                let back = x <= hx - 6 && y <= hy + (wild ? 3 : 1)
+                if ring || back { canvas.set(x, y, (x + y) % 3 == 0 ? "t" : "T", .hat) }
+            }
+        }
+        // The polished bald crown above it.
+        for y in (hy - 9)...(hy - 7) {
+            for x in (hx - 8)...(hx + 4) where canvas.part(x, y) == .head {
+                canvas.set(x, y, y == hy - 8 && x >= hx - 4 && x <= hx - 2 ? "L" : "W", .head)
+            }
+        }
+        canvas.set(hx - 3, hy - 9, "w", .head)
+        if wild {
+            // Tufts sticking out of the ring, and one sad strand combed over the bald bit.
+            for (dx, dy) in [(-11, -6), (-12, -7), (-13, -7), (-11, -2), (-12, -1), (-11, 2), (-12, 3), (3, -6), (4, -7)] {
+                canvas.set(hx + dx, hy + dy, "T", .hat)
+            }
+            for (dx, dy) in [(-7, -8), (-6, -9), (-5, -10), (-4, -10), (-3, -10), (-2, -10), (-1, -9)] {
+                canvas.set(hx + dx, hy + dy, "t", .hat)
+            }
+        }
+        canvas.seam(.hat, onto: [.head])
+    }
+
+    /// A can of beer: in the wing, or tipped up to the beak for a swig.
+    private static func paintBeer(_ canvas: inout PixelCanvas, sipping: Bool, hx: Int, hy: Int, bodyY: Int) {
+        if sipping {
+            canvas.stamp(["..ng", ".gAA", "nRRA", "AAAa", "Aaa."], hx + 14, hy - 5, .gun)
+        } else {
+            canvas.stamp(["gnng", "AAAa", "RRRr", "AwAa", "AAAa", "gnng"], 33, 37 + bodyY, .gun)
+        }
+        canvas.seam(.gun, onto: [.body, .wing, .head, .beak])
+    }
+
+    /// A mug of coffee held up to the beak, steaming.
+    private static func paintMug(_ canvas: inout PixelCanvas, hx: Int, hy: Int) {
+        canvas.stamp(["CCCC.", "MMMMM", "MMMM.M", "MMMMMM", "MMMM.", "sMMs."], hx + 13, hy - 1, .gun)
+        canvas.stamp(["w..", ".w.", "w.."], hx + 14, hy - 5, .effect)
+        canvas.seam(.gun, onto: [.body, .wing, .head, .beak])
+    }
+
+    /// A slice of bread with a bite out of it, in the beak.
+    private static func paintBread(_ canvas: inout PixelCanvas, hx: Int, hy: Int) {
+        canvas.stamp([".zzzz.", "zZZZZz", "zZZZ..", "zZZZZz", ".zzzz."], hx + 13, hy - 1, .gun)
+        canvas.seam(.gun, onto: [.body, .wing, .head, .beak])
+    }
+
+    /// A machine gun held side on and pointing ahead, ammo belt hanging off it, gold casings and all.
+    private static func paintMachineGun(_ canvas: inout PixelCanvas, flash: Bool, bodyY: Int) {
+        let y = 37 + bodyY
+        // Stock, receiver, the cooling jacket with its holes, and the barrel.
+        canvas.rect(17, y + 1, 25, y + 4, "D", .gun)
+        canvas.rect(17, y + 1, 25, y + 1, "d", .gun)
+        canvas.rect(26, y, 39, y + 5, "K", .gun)
+        canvas.rect(26, y, 39, y, "k", .gun)
+        canvas.rect(40, y + 1, 50, y + 4, "D", .gun)
+        for x in stride(from: 41, through: 49, by: 2) { canvas.set(x, y + 2, "K", .gun) }
+        canvas.rect(51, y + 2, 55, y + 3, "K", .gun)
+        canvas.rect(33, y - 2, 36, y - 1, "k", .gun)  // sight
+        canvas.rect(30, y + 6, 32, y + 9, "K", .gun)  // grip
+        // The ammo belt, drooping toward the floor.
+        for (index, (x, dy)) in [(35, 6), (36, 8), (37, 10), (37, 12), (36, 14)].enumerated() {
+            canvas.rect(x, y + dy, x + 1, y + dy + 1, index % 2 == 0 ? "*" : "a", .gun)
+        }
+        canvas.seam(.gun, onto: [.body, .wing, .head])
+        if flash {
+            for (x, dy) in [(56, 2), (57, 2), (56, 3), (57, 3), (56, 1), (57, 0), (56, 4), (57, 5)] {
+                canvas.set(x, y + dy, dy == 2 || dy == 3 ? "X" : "x", .effect)
+            }
+        }
     }
 
     /// A pistol pointed straight at you, held in a very human hand. The muzzle is the big dark circle.
@@ -523,6 +643,19 @@ nonisolated enum DuckArt {
                 context.fill(CGRect(x: CGFloat(column) * scale, y: (height - CGFloat(row) - 1) * scale,
                                     width: scale, height: scale))
             }
+        }
+    }
+}
+
+/// The empty beer cans the duck leaves lying about: standing, on their side, or crushed. Outlined, like the duck.
+nonisolated enum CanArt {
+    static let kinds = 3
+
+    static func rows(_ kind: Int) -> [String] {
+        switch kind % kinds {
+        case 0: [".OOOO.", "OgnngO", "OAAAaO", "OwAAaO", "ORRRrO", "OAAAaO", "OAAAaO", "OnnnnO", ".OOOO."]
+        case 1: [".OOOOOOO.", "OgAAwRAgO", "OnAAARAnO", "OnAaARanO", "OgaaarAgO", ".OOOOOOO."]
+        default: [".OOOO.", "OgnAaO", "OARrAO", "OaAAnO", ".OOOO."]
         }
     }
 }

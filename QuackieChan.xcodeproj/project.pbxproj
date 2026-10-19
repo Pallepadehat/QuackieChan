@@ -32,6 +32,7 @@
 		5772327F490605EB0649B187 /* Paws.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DDA5DF1FC98FA9122F2A816 /* Paws.swift */; };
 		5D64C8D89797EDE2698CBB56 /* Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850AD7F3331F267C6E663331 /* Goals.swift */; };
 		5E8825B2D9A8DCDD5E0F8E33 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75CECE02BE99631BE0848F2C /* Log.swift */; };
+		64397864CDF5AE6A39930BC0 /* Booze.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226C2C44DC5CB93F3DFF2A53 /* Booze.swift */; };
 		6476915954E350477EE0F597 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = D769A8C5BC2EBB1D06CF89A8 /* main.swift */; };
 		6699C0D32C5D80D7C8F27A5C /* AppleBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8970DD3D483D47442D4668D4 /* AppleBrain.swift */; };
 		716B181AD253D6A1A490CC07 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 0C3B98DEB922DB2E07A3486B /* Tokenizers */; };
@@ -45,6 +46,7 @@
 		A95AC5E403F60F1F9FA60F68 /* OFL-Fredoka.txt in Resources */ = {isa = PBXBuildFile; fileRef = 266309EC711A8741610E3C45 /* OFL-Fredoka.txt */; };
 		AA342FD8DEC906A6FB536635 /* Duck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CA5D1F8E2CAA97909FBE1 /* Duck.swift */; };
 		AA97D060044EABEABCEE152A /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C8A6A2022E67D6C0C055E7A0 /* MLXLLM */; };
+		AD70EA2443DF73DE89FA698F /* Litter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FDBB55D80DAD4B7A129BBE /* Litter.swift */; };
 		B138C25CDF4AD13AB9F018E3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3C4F62FE2A80EAAC1D1113 /* SettingsView.swift */; };
 		BFDA30BFDC9470E043A242B5 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = B4D57935A89CDDC84B8E3958 /* HuggingFace */; };
 		C1F42D7C666A826AE3578D1B /* Fredoka.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E621DDB7AADED9BE30DCB1D9 /* Fredoka.ttf */; };
@@ -69,6 +71,7 @@
 		14CDE14DBC8317732E7934DA /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		1AB6FC7725D8BC235B1C41C9 /* Minds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Minds.swift; sourceTree = "<group>"; };
 		1D7FD163F95E5CCCB4967878 /* Desk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Desk.swift; sourceTree = "<group>"; };
+		226C2C44DC5CB93F3DFF2A53 /* Booze.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Booze.swift; sourceTree = "<group>"; };
 		266309EC711A8741610E3C45 /* OFL-Fredoka.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "OFL-Fredoka.txt"; sourceTree = "<group>"; };
 		26CEED2B25E7BB803B2CBD44 /* Sprites.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sprites.swift; sourceTree = "<group>"; };
 		2DDA5DF1FC98FA9122F2A816 /* Paws.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paws.swift; sourceTree = "<group>"; };
@@ -98,6 +101,7 @@
 		A6F13E8A5AE693F3ABBD89D6 /* HotKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeys.swift; sourceTree = "<group>"; };
 		AAE6D4577E609DEDC53C895E /* Ears.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ears.swift; sourceTree = "<group>"; };
 		B19511964AA2F4237AE4E04D /* Feel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feel.swift; sourceTree = "<group>"; };
+		B4FDBB55D80DAD4B7A129BBE /* Litter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Litter.swift; sourceTree = "<group>"; };
 		D6CF952D6988C195171DB4C1 /* Director.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Director.swift; sourceTree = "<group>"; };
 		D769A8C5BC2EBB1D06CF89A8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		D8AA9898AA5CB7C8CE6CF94B /* DuckWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckWindow.swift; sourceTree = "<group>"; };
@@ -240,10 +244,12 @@
 		D95A186D5B58471DDFC309A1 /* Duck */ = {
 			isa = PBXGroup;
 			children = (
+				226C2C44DC5CB93F3DFF2A53 /* Booze.swift */,
 				796CA5D1F8E2CAA97909FBE1 /* Duck.swift */,
 				05519901666DE77E0DC8B722 /* DuckView.swift */,
 				D8AA9898AA5CB7C8CE6CF94B /* DuckWindow.swift */,
 				81DA1B544AC66ACA4E33D245 /* Feelings.swift */,
+				B4FDBB55D80DAD4B7A129BBE /* Litter.swift */,
 				DA88BE5863AB72D62FE9CE15 /* Sounds.swift */,
 				26CEED2B25E7BB803B2CBD44 /* Sprites.swift */,
 				908BB4E26AA2714ECAED4D15 /* Talk.swift */,
@@ -364,6 +370,7 @@
 			files = (
 				7DE72808098F31AB565ED1C2 /* AppDelegate.swift in Sources */,
 				6699C0D32C5D80D7C8F27A5C /* AppleBrain.swift in Sources */,
+				64397864CDF5AE6A39930BC0 /* Booze.swift in Sources */,
 				0C3A2D4650102CBB22C6F4DA /* Desk.swift in Sources */,
 				0E9F80FFDF2FD295144A325F /* Director.swift in Sources */,
 				AA342FD8DEC906A6FB536635 /* Duck.swift in Sources */,
@@ -378,6 +385,7 @@
 				9543748C04460CB918F958AD /* HotKeys.swift in Sources */,
 				2467526E761F2B3B19D09BDE /* Knowing.swift in Sources */,
 				0F6B3FF814D4904E6C1BCC0B /* Lines.swift in Sources */,
+				AD70EA2443DF73DE89FA698F /* Litter.swift in Sources */,
 				1950F42AE758E18A20AB53EA /* LocalBrain.swift in Sources */,
 				5E8825B2D9A8DCDD5E0F8E33 /* Log.swift in Sources */,
 				0E4B4248E601364558D70268 /* LoginItem.swift in Sources */,

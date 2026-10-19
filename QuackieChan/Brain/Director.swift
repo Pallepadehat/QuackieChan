@@ -77,6 +77,8 @@ final class Director {
     /// Something you said to the duck, typed or spoken.
     func heard(_ said: String) {
         feelings.feel(.chatted)
+        // Told to sit, it stays sat until you say anything else.
+        if window.isSitting, Paws.parse(said) != [.sit] { window.standUp(saying: Paws.parse(said) == [.stand]) }
         let lowered = said.lowercased()
         if ["good duck", "i love you", "you're the best", "good boy", "good girl", "cute"].contains(where: lowered.contains) {
             feelings.feel(.praised)
@@ -243,7 +245,16 @@ final class Director {
             window.comeToMouse()
             next()
         case .nap:
-            duck.set(.sleeping)
+            window.nap()
+            next()
+        case .sit:
+            window.sit()
+            next()
+        case .stand:
+            if !window.isSitting { duck.hop() }
+            next()
+        case .bread, .coffee, .beer:
+            window.give(deed == .bread ? .bread : deed == .coffee ? .coffee : .beer)
             next()
         default:
             duck.hop()
@@ -305,6 +316,7 @@ final class Director {
 
     /// Idle chatter matches the mood half the time.
     private var idleMoment: Moment {
+        if Booze.shared.stage > .sober, Int.random(in: 0..<3) > 0 { return .drunkIdle }
         guard Bool.random() else { return .idle }
         return switch feelings.mood {
         case .happy: .idleHappy
