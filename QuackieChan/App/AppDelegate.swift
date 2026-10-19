@@ -24,6 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.actions = DuckActions(
             talk: { [weak self] in self?.talk(listening: false) },
             tell: { [weak self] in self?.tell() },
+            sit: { [weak self] in self?.window.toggleSit() },
+            dance: { [weak self] in self?.window.dance(.dancing, for: 14) },
+            bananas: { [weak self] in self?.window.dance(.bananas, for: 14) },
+            fly: { [weak self] in self?.window.flyAround() },
+            nap: { [weak self] in self?.window.nap() },
+            give: { [weak self] treat in self?.window.give(treat) },
+            cleanUp: { [weak self] in self?.window.cleanUpCans() },
             openSettings: { [weak self] in self?.openSettings() },
             togglePause: { [weak self] in self?.togglePause() },
             hide: { [weak self] in self?.toggleHidden() },
@@ -96,6 +103,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                 action: nil, keyEquivalent: "")
         status.isEnabled = false
         menu.addItem(status)
+        let booze = Booze.shared
+        if booze.stage > .sober {
+            let drunk = NSMenuItem(title: "🍺 \(booze.stage.name): \(booze.beers) beer\(booze.beers == 1 ? "" : "s") down. Pet it!",
+                                   action: nil, keyEquivalent: "")
+            drunk.isEnabled = false
+            menu.addItem(drunk)
+        }
         menu.addItem(.separator())
         let talk = item("Talk to \(prefs.duckName)…", #selector(talkFromMenu), "q")
         talk.keyEquivalentModifierMask = [.control, .option]
@@ -103,6 +117,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(item("Tell \(prefs.duckName) a Goal…", #selector(tell), "t"))
         menu.addItem(item(prefs.paused ? "Start Watching" : "Pause Watching", #selector(togglePause), "p"))
         menu.addItem(item(prefs.hidden ? "Show Duck" : "Hide Duck", #selector(toggleHidden), "h"))
+        menu.addItem(.separator())
+        menu.addItem(item(window.isSitting ? "Stand Up" : "Sit", #selector(toggleSit), "s"))
+        menu.addItem(item("Bring \(prefs.duckName) Here", #selector(summon), "b"))
+        let treats = NSMenuItem(title: "Treats", action: nil, keyEquivalent: "")
+        treats.submenu = NSMenu()
+        treats.submenu?.addItem(item("🍞 Bread", #selector(giveBread), ""))
+        treats.submenu?.addItem(item("☕️ Coffee", #selector(giveCoffee), ""))
+        treats.submenu?.addItem(item("🍺 A Beer", #selector(giveBeer), ""))
+        if !Litter.shared.isEmpty {
+            treats.submenu?.addItem(.separator())
+            treats.submenu?.addItem(item("Pick Up the Cans", #selector(cleanUp), ""))
+        }
+        menu.addItem(treats)
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(openSettings), ","))
         menu.addItem(item("Quit Quackie Chan", #selector(quit), "q"))
@@ -144,6 +171,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if self?.window.duck.activity == .celebrating { self?.window.duck.set(.idle) }
         }
     }
+
+    @objc private func toggleSit() {
+        if settings.prefs.hidden { toggleHidden() }
+        window.toggleSit()
+    }
+
+    @objc private func summon() {
+        if settings.prefs.hidden { toggleHidden() }
+        window.summon()
+    }
+
+    @objc private func giveBread() { give(.bread) }
+    @objc private func giveCoffee() { give(.coffee) }
+    @objc private func giveBeer() { give(.beer) }
+
+    private func give(_ treat: Treat) {
+        if settings.prefs.hidden { toggleHidden() }
+        window.give(treat)
+    }
+    @objc private func cleanUp() { window.cleanUpCans() }
 
     @objc private func togglePause() {
         settings.prefs.paused.toggle()

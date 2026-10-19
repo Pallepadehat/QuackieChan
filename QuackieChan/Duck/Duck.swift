@@ -14,6 +14,14 @@ final class Duck {
         case pecking
         /// Listening to you talk.
         case listening
+        /// Told to sit, and staying sat until told otherwise.
+        case sitting
+        /// Holding on to the top of a window by one wing, when there's no room to stand on it.
+        case hanging
+        /// Treats: a can of beer, a mug of coffee, a slice of bread.
+        case drinking, sipping, eating
+        /// Far too drunk, spraying the cursor with a machine gun.
+        case shooting
     }
 
     struct Bubble: Equatable, Identifiable {
@@ -34,7 +42,10 @@ final class Duck {
     }
 
     struct Particle: Identifiable, Equatable {
-        enum Kind: Equatable { case zzz, heart, anger, sweat, exclaim, question, tap, fire, smoke, bang, sparkle, note, impact, puff }
+        enum Kind: Equatable {
+            case zzz, heart, anger, sweat, exclaim, question, tap, fire, smoke, bang, sparkle, note, impact, puff
+            case hic, beer, casing, ratatat, crumb, achoo, coffee
+        }
         let id = UUID()
         let kind: Kind
         /// Where it starts, in art pixels on the duck's canvas.
@@ -69,6 +80,12 @@ final class Duck {
     /// Seconds per beat of whatever's playing.
     @ObservationIgnored var beat: TimeInterval = 0.5
     @ObservationIgnored var mood = Feelings.Mood.content
+    /// How drunk it is: 0 sober, 1 tipsy, 2 drunk, 3 wasted.
+    @ObservationIgnored var tipsy = 0
+    /// Holding on to a window's top edge. Standing still then means hanging there.
+    @ObservationIgnored var hanging = false
+    /// Told to sit. Standing still then means sitting, until it's told something else.
+    private(set) var staying = false
 
     /// Called when a line starts, so the duck's voice can babble along.
     @ObservationIgnored var onSay: ((String) -> Void)?
@@ -86,14 +103,32 @@ final class Duck {
     @ObservationIgnored private var bubbleTimer: Task<Void, Never>?
     @ObservationIgnored private var lastParticle: TimeInterval = 0
     @ObservationIgnored private var lastBeat = -1
+    @ObservationIgnored private var nextHiccup: TimeInterval = 8
+    @ObservationIgnored private var waveUntil: TimeInterval = 0
+    @ObservationIgnored private var sneezeAt: TimeInterval = -10
+    @ObservationIgnored private var sneezed = true
 
-    var isBusy: Bool { [.aiming, .dragged, .flying, .soaring, .pecking, .listening].contains(activity) }
+    var isBusy: Bool {
+        [.aiming, .dragged, .flying, .soaring, .pecking, .listening, .drinking, .sipping, .eating, .shooting].contains(activity)
+    }
     var isDancing: Bool { [.vibing, .dancing, .bananas].contains(activity) }
-    var isFree: Bool { [.idle, .walking, .petted, .sulking].contains(activity) }
+    var isFree: Bool { [.idle, .walking, .petted, .sulking, .sitting, .hanging].contains(activity) }
+    /// Standing about with nothing to do, wherever that is: on the floor, sat down, or hanging off a window.
+    var isResting: Bool { [.idle, .sitting, .hanging].contains(activity) }
 
     // MARK: Doing things
 
-    func set(_ activity: Activity) {
+    /// Sits down and stays there, or gets back up.
+    func stay(_ on: Bool) {
+        guard on != staying else { return }
+        staying = on
+        if on, activity == .idle { set(.sitting) }
+        if !on, activity == .sitting { set(.idle) }
+    }
+
+    /// Going back to doing nothing means hanging on if it's holding a window's edge, and sitting if it was told to.
+    func set(_ requested: Activity) {
+        let activity = requested == .idle ? (hanging ? .hanging : staying ? .sitting : .idle) : requested
         guard activity != self.activity else { return }
         if [.aiming, .typing, .pecking].contains(activity) { facingLeft = false }
         if self.activity == .sleeping, activity != .sleeping { spawn(.exclaim) }
@@ -107,6 +142,7 @@ final class Duck {
     /// Shows a speech bubble and flaps the beak. The bubble goes away by itself, slower for longer lines.
     func say(_ text: String, alarm: Bool = false, countdown: Int? = nil, choices: [Bubble.Choice] = [], hold: TimeInterval? = nil) {
         if activity == .sleeping { set(.idle) }
+        let text = tipsy >= 2 && !alarm ? Self.slur(text, tipsy) : text
         bubble = Bubble(text: text, alarm: alarm, countdown: countdown, choices: choices)
         talkingUntil = clock + min(2.4, 0.4 + Double(text.count) * 0.035)
         onSay?(text)
@@ -141,11 +177,46 @@ final class Duck {
     /// Beats since the dancing started, counting smoothly, so moving and posing stay on the same beat.
     var beatPhase: Double { isDancing ? (clock - activitySince) / beat : 0 }
 
-    var isInMotion: Bool { motion != .rest }
+    /// Moving in a way that needs smooth frames. A tipsy duck's slow sway is fine at the idle frame rate.
+    var isInMotion: Bool {
+        guard motion != .rest else { return false }
+        let hopping = clock - hopStart < 0.32
+        return hopping || !(tipsy > 0 && isResting)
+    }
 
     func yawn() {
         yawnUntil = clock + 1.4
         spawn(.puff)
+    }
+
+    /// Waves hello with its wing.
+    func wave() { waveUntil = clock + 1.8 }
+
+    /// A big sneeze that knocks it back a step.
+    func sneeze() {
+        sneezeAt = clock + 0.6
+        sneezed = false
+    }
+
+    /// How a drunk duck talks: sh-sounds, a stretched vowel, the odd hiccup. Worse the more it's had.
+    static func slur(_ text: String, _ level: Int) -> String {
+        guard level >= 2 else { return text }
+        var out = ""
+        var stretched = false
+        for character in text {
+            if character == "s", out.last != "h" {
+                out += "sh"
+            } else if character == "S", out.last != "H" {
+                out += "SH"
+            } else if !stretched, level >= 3, "aeiouAEIOU".contains(character), out.count > 3 {
+                out += String(repeating: character, count: 3)
+                stretched = true
+            } else {
+                out.append(character)
+            }
+        }
+        if level >= 3 || Bool.random() { out += " *hic*" }
+        return out
     }
 
     /// Fires the gun: a muzzle flash, a kick back, a BANG and some smoke.
@@ -158,7 +229,13 @@ final class Duck {
 
     func spawn(_ kind: Particle.Kind, at point: CGPoint? = nil) {
         let at = point ?? CGPoint(x: DuckArt.headTop.x + .random(in: -4...4), y: DuckArt.headTop.y)
-        let drift = CGSize(width: .random(in: -14...14), height: kind == .smoke ? -36 : -30)
+        let drift = switch kind {
+        case .casing: CGSize(width: .random(in: -30 ... -8), height: .random(in: 24...40))
+        case .crumb: CGSize(width: .random(in: -10...10), height: 26)
+        case .ratatat: CGSize(width: .random(in: 10...24), height: -24)
+        case .smoke: CGSize(width: .random(in: -14...14), height: -36)
+        default: CGSize(width: .random(in: -14...14), height: -30)
+        }
         let particle = Particle(kind: kind, at: at, drift: drift)
         particles.append(particle)
         if particles.count > 12 { particles.removeFirst() }
@@ -213,9 +290,30 @@ final class Duck {
             if clock < flashUntil + 0.12 { motion.tilt = -8 }  // the kick
         case .listening:
             motion.tilt = 3 * sin(t * 1.6)
+        case .shooting:
+            // The recoil of a lot of bullets.
+            motion.tilt = -2 - 2 * sin(t * 70)
+            motion.squash = 1 - 0.02 * CGFloat(abs(sin(t * 35)))
+        case .drinking, .sipping:
+            motion.tilt = t > 0.5 ? -6 : 0  // leaning back for a swig
+        case .eating:
+            motion.squash = 1 - 0.02 * CGFloat(abs(sin(t * 12)))
         default:
             break
         }
+        // A drunk duck sways, more the more it's had, and staggers when it walks.
+        if tipsy > 0 {
+            switch activity {
+            case .idle, .sitting, .sulking, .petted:
+                motion.tilt += Double(tipsy) * 2.5 * sin(clock * 1.3)
+            case .walking:
+                motion.tilt += Double(tipsy) * 3 * sin(clock * 2.1)
+            default:
+                break
+            }
+        }
+        // Knocked back a little by a sneeze.
+        if clock > sneezeAt && clock < sneezeAt + 0.25 { motion.tilt -= 10 }
         // A hop is a little arc with a squash on take-off and landing.
         let hop = (clock - hopStart) / 0.32
         if hop >= 0 && hop < 1 {
@@ -389,6 +487,50 @@ final class Duck {
             next.bodyY = half ? 1 : 0
             next.legs = count % 2 == 0 ? .stepA : .stepB
             onEachBeat(t) { _ in spawn([.note, .fire, .sparkle, .note].randomElement()!) }
+        case .sitting:
+            next.eyes = restingEyes
+            next.legs = .tucked
+            next.bodyY = 3 + Int(clock / 1.6) % 2
+            if clock < blinkUntil { next.eyes = .blink }
+        case .hanging:
+            // Holding on by one wing, feet kicking now and then, getting sweaty if it's been a while.
+            next.eyes = clock < blinkUntil ? .blink : (t > 10 ? .sad : restingEyes)
+            next.legs = Int(t / 0.35) % 6 == 0 ? .stepA : .dangling
+            next.wing = .up
+            next.bodyY = 0
+            next.sweat = t > 10
+        case .drinking:
+            next.eyes = t > 0.5 ? .happy : .open
+            next.beer = t > 0.5 && t < 2 ? 2 : 1
+            next.headY = t > 0.5 && t < 2 ? -1 : 0
+            next.wing = .forward
+            if t > 0.6, t < 2, clock - lastParticle > 0.45 { lastParticle = clock; spawn(.beer) }
+        case .sipping:
+            next.mug = true
+            next.eyes = t > 1.2 ? .shocked : .happy
+            next.headY = -1
+            next.wing = .forward
+            if clock - lastParticle > 0.6 { lastParticle = clock; spawn(.coffee) }
+        case .eating:
+            next.bread = Int(t / 0.7) < 3
+            next.eyes = .happy
+            next.beakOpen = Int(t / 0.14) % 2 == 0
+            next.blush = true
+            next.wing = .forward
+            if clock - lastParticle > 0.3 { lastParticle = clock; spawn(.crumb, at: CGPoint(x: 42, y: 30)) }
+        case .shooting:
+            next.machineGun = true
+            next.wing = .forward
+            next.eyes = .angry
+            next.lookX = 1
+            next.muzzleFlash = Int(t / 0.05) % 2 == 0
+            next.headX = next.muzzleFlash ? -1 : 0
+            next.beakOpen = true
+            if clock - lastParticle > 0.07 {
+                lastParticle = clock
+                spawn(.casing, at: CGPoint(x: 32, y: 36))
+                if Int.random(in: 0..<4) == 0 { spawn(.ratatat, at: DuckArt.barrel) }
+            }
         case .pecking:
             let down = Int(t / 0.16) % 2 == 0
             next.eyes = .angry
@@ -401,10 +543,46 @@ final class Duck {
                 spawn(.impact, at: CGPoint(x: 42, y: 40))
             }
         }
-        if clock < yawnUntil, activity == .idle || activity == .sulking {
+        if clock < yawnUntil, activity == .idle || activity == .sulking || activity == .sitting {
             next.beakOpen = true
             next.eyes = .blink
             next.headY = -1
+        }
+        if clock < waveUntil, isFree, activity != .hanging {
+            next.wing = Int(clock / 0.2) % 2 == 0 ? .up : .forward
+            next.eyes = .happy
+        }
+        // The sneeze: a wind-up, then ACHOO.
+        if clock > sneezeAt - 0.6, clock < sneezeAt + 0.3 {
+            let windUp = clock < sneezeAt
+            next.eyes = windUp ? .sleepy : .blink
+            next.headY = windUp ? -2 : 2
+            next.beakOpen = true
+            if !windUp, !sneezed {
+                sneezed = true
+                spawn(.achoo, at: CGPoint(x: 44, y: 20))
+                spawn(.puff, at: CGPoint(x: 46, y: 26))
+            }
+        }
+        // The beer shows: a red face, then drunk eyes and a monk's ring of hair, then wild hair and hiccups.
+        if tipsy > 0 {
+            next.flushed = true
+            next.monkHair = tipsy >= 3 ? 2 : (tipsy >= 2 ? 1 : 0)
+            if tipsy >= 2, next.eyes == .open || next.eyes == .sleepy { next.eyes = .drunk }
+            if clock > nextHiccup {
+                nextHiccup = clock + .random(in: 3...12) / Double(tipsy)
+                if isFree || activity == .sleeping {
+                    spawn(.hic)
+                    if activity != .sleeping { hop() }
+                }
+            }
+        }
+        // Hanging on to a window's edge, whatever else it's doing: feet dangling, a wing holding on.
+        if hanging, activity != .dragged, activity != .flying, activity != .soaring {
+            if activity != .hanging { next.legs = .dangling }
+            if next.wing == .rest { next.wing = .up }
+            next.bodyY = 0
+            next.laptop = false
         }
         // Dances turn around exactly once, on the beat, when the lean is back at zero, so the turn is seamless.
         // (Setting this every frame instead of toggling is what keeps it from spinning.)

@@ -40,6 +40,7 @@ final class Feelings {
         case typedALot, userCameBack, userLeft
         case praised, insulted, chatted, helped
         case windowYanked
+        case drank, fed, caffeinated
     }
 
     var mood: Mood {
@@ -76,6 +77,9 @@ final class Feelings {
         case .chatted: love += 0.04; boredom = 0
         case .helped: joy += 0.06; love += 0.03
         case .windowYanked: anger += 0.1
+        case .drank: joy += 0.08; energy -= 0.06; anger -= 0.05
+        case .fed: love += 0.1; joy += 0.1; boredom = 0
+        case .caffeinated: energy = 1; joy += 0.05; boredom = 0
         }
         clamp()
     }

@@ -8,6 +8,13 @@ struct DuckActions {
     var hover: (Bool) -> Void = { _ in }
     var talk: () -> Void = {}
     var tell: () -> Void = {}
+    var sit: () -> Void = {}
+    var dance: () -> Void = {}
+    var bananas: () -> Void = {}
+    var fly: () -> Void = {}
+    var nap: () -> Void = {}
+    var give: (Treat) -> Void = { _ in }
+    var cleanUp: () -> Void = {}
     var openSettings: () -> Void = {}
     var togglePause: () -> Void = {}
     var hide: () -> Void = {}
@@ -63,6 +70,26 @@ struct DuckStage: View {
     @ViewBuilder private var menu: some View {
         Button("Talk to \(settings.prefs.duckName)…", action: actions.talk)
         Button("Tell \(settings.prefs.duckName) a Goal…", action: actions.tell)
+        Divider()
+        Button(duck.staying ? "Stand Up" : "Sit", action: actions.sit)
+        Menu("Tricks") {
+            Button("Dance", action: actions.dance)
+            Button("Go Bananas", action: actions.bananas)
+            Button("Fly Somewhere", action: actions.fly)
+            Button("Take a Nap", action: actions.nap)
+        }
+        Menu("Treats") {
+            Button("🍞 Bread") { actions.give(.bread) }
+            Button("☕️ Coffee") { actions.give(.coffee) }
+            Button("🍺 A Beer") { actions.give(.beer) }
+            if !Litter.shared.pile.cans.isEmpty {
+                Divider()
+                Button("Pick Up the Cans", action: actions.cleanUp)
+            }
+        }
+        if Booze.shared.stage > .sober {
+            Text("🍺 \(Booze.shared.stage.name) (\(Booze.shared.beers) beer\(Booze.shared.beers == 1 ? "" : "s"))")
+        }
         Divider()
         Picker("Duck", selection: $settings.prefs.skinID) {
             ForEach(DuckSkin.all) { Text($0.name).tag($0.id) }
@@ -210,6 +237,16 @@ struct ParticleView: View {
         case .sparkle: Text("✦").font(.system(size: 14)).foregroundStyle(.yellow)
         case .note: Text(["♪", "♫", "♬"][pick % 3]).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
         case .impact: Text("💥").font(.system(size: 16))
+        case .hic: label("hic!", size: 13, color: Color(red: 1, green: 0.85, blue: 0.4))
+        case .beer: Text("🍺").font(.system(size: 13))
+        case .coffee: Text("☕️").font(.system(size: 12))
+        case .casing: RoundedRectangle(cornerRadius: 1).fill(Color(red: 0.95, green: 0.75, blue: 0.3)).frame(width: 3, height: 6)
+        case .crumb: RoundedRectangle(cornerRadius: 1).fill(Color(red: 0.85, green: 0.6, blue: 0.3)).frame(width: 4, height: 4)
+        case .ratatat:
+            label(["RATATAT", "BRRRT", "TAT TAT"][pick % 3], size: 13, color: .white)
+                .padding(.horizontal, 4)
+                .background(Color.red, in: RoundedRectangle(cornerRadius: 4))
+        case .achoo: label("ACHOO!", size: 16, color: .white)
         }
     }
 

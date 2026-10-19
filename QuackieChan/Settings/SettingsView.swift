@@ -156,7 +156,7 @@ private extension View {
 /// The duck, animated, doing one thing over and over: for previews.
 struct LiveDuck: View {
     enum Mode: String, CaseIterable, Identifiable {
-        case idle, waddle, dance, bananas, gun, typing, sleep, petted
+        case idle, waddle, dance, bananas, gun, typing, sleep, petted, drunk, wasted
 
         var id: String { rawValue }
 
@@ -170,6 +170,8 @@ struct LiveDuck: View {
             case .typing: "Type"
             case .sleep: "Nap"
             case .petted: "Pet"
+            case .drunk: "Drunk"
+            case .wasted: "Wasted"
             }
         }
     }
@@ -243,6 +245,22 @@ struct LiveDuck: View {
             pose.eyes = .happy
             pose.blush = true
             pose.headY = 1
+        case .drunk:
+            let swig = t.truncatingRemainder(dividingBy: 3) > 1.8
+            pose.eyes = swig ? .happy : .drunk
+            pose.flushed = true
+            pose.monkHair = 1
+            pose.wing = .forward
+            pose.beer = swig ? 2 : 1
+            pose.headY = swig ? -1 : 0
+        case .wasted:
+            pose.eyes = .angry
+            pose.flushed = true
+            pose.monkHair = 2
+            pose.wing = .forward
+            pose.machineGun = true
+            pose.beakOpen = true
+            pose.muzzleFlash = Int(t * 8) % 2 == 0
         }
         return pose
     }
@@ -293,6 +311,10 @@ private struct DuckPage: View {
                     Text("Wander, fly and climb on windows")
                     Text("Waddles about, flies up onto your windows and hops between them. Move a window and it falls off.")
                 }
+                Toggle(isOn: $settings.prefs.allDesktops) {
+                    Text("Follow me to every desktop")
+                    Text("Comes along when you switch desktops (Spaces). Off, it stays on the one it started on.")
+                }
                 Toggle(isOn: $settings.prefs.sounds) {
                     Text("Sound effects")
                     Text("The gun going off, the click-clack of it being cocked, quacks when you poke it, thuds and whooshes.")
@@ -303,6 +325,22 @@ private struct DuckPage: View {
                 }
                 VoicePicker()
                     .disabled(!settings.prefs.voiceOn)
+            }
+            Section {
+                Picker(selection: $settings.prefs.drinking) {
+                    ForEach(Drinking.allCases) { Text($0.name).tag($0) }
+                } label: {
+                    Text("Drinks when you don't pet it")
+                    Text("Ignore it and it cracks open a beer, then another. Red face, hiccups, a monk's haircut, cans everywhere. "
+                        + "Pets, bread and coffee sober it up. Right-click it for treats.")
+                }
+                Toggle(isOn: $settings.prefs.machineGun) {
+                    Text("Machine gun when it's wasted")
+                    Text("Try to pet a completely wasted duck and it shoots your cursor across the screen. Give it coffee.")
+                }
+                .disabled(settings.prefs.drinking == .off)
+            } header: {
+                Text("After hours 🍺")
             }
             StartAtLogin()
         }

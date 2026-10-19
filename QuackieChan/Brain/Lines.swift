@@ -57,6 +57,9 @@ nonisolated enum Moment: String, CaseIterable, Sendable {
     case welcomeBack, batteryLow, charging, darkMode, lightMode, copyPaste, appHopping, longFocus
     case startled, takeOff, windowYanked, yawn, sulk
     case quitApp, openedApp, hidApp, musicControl, didIt, cantDoThat, askFirst, notAllowed, dunno
+    case sit, stand, hang, letGo, newDesk, summoned, moonwalk, sneeze
+    case beer, gotTipsy, gotDrunk, gotWasted, drunkIdle, machineGun, noPets, petSobers, tooMuch
+    case bread, coffee, soberedUp, cansGone, cansGoneDrunk
 }
 
 /// The duck's built-in lines. Placeholders: {name} the duck, {user} you, {price}, {thing}, {site}, {minutes},
@@ -211,6 +214,37 @@ nonisolated enum Lines {
         .notAllowed: ["I'm not allowed to touch your Mac. Turn on Hands in Settings first.",
                       "My hands are tied. Literally. Settings → Hands."],
         .dunno: ["No idea. I'm a duck.", "Quack? I don't know.", "Good question. Ask a goose."],
+        .sit: ["Sitting. I'm not moving until you say so.", "*sits* Good duck? Good duck.", "Fine. I'll sit. Forever, apparently.",
+               "Sat. Staying. Very obedient. Very bored.", "Sitting like a professional."],
+        .stand: ["Free! FREE!", "Finally. My legs fell asleep.", "Up we get.", "*stretches* Okay, what did I miss?"],
+        .hang: ["Just hanging around.", "No room up there. I'll hold on.", "Don't move this window. Please.", "I'm fine. Totally fine."],
+        .letGo: ["My wing is tired. Bye!", "Okay I'm letting go now. AAAA—", "Gravity, take the wheel."],
+        .newDesk: ["New desktop, who dis?", "Ooh, a different desk.", "Wait. Where are all the windows?", "I'm coming too!"],
+        .summoned: ["You rang?", "*poof* Here I am.", "Teleportation. One of my many skills.", "Present!"],
+        .moonwalk: ["Hee-hee!", "Smooth criminal.", "Don't mind me. Just gliding.", "Annie, are you okay?"],
+        .sneeze: ["Bless me.", "Sorry. Feather up the nose.", "Allergic to work, I think."],
+        .beer: ["Don't mind if I do. *glug*", "Cheers. To me. Since nobody pets me.", "This one's for the lonely ducks.",
+                "Just the one. Again.", "*crack* *fssst* Ahh."],
+        .gotTipsy: ["Nobody pets me, so... beer.", "I'm not lonely, I'm just thirsty.", "One beer. For my nerves. You know why."],
+        .gotDrunk: ["I'm not drunk, you're blurry.", "Pet me and I'll stop. Probably.", "Who put a monk on my head?",
+                    "Look at my hair. LOOK AT IT. Thish ish your fault."],
+        .gotWasted: ["Don't. Touch. Me.", "I've found religion. And a machine gun.", "Pet me now. I DARE you.",
+                     "I am the duck now. Try petting me. Go on."],
+        .drunkIdle: ["You never pet me anymore.", "I love you, man. I really do.", "Is the floor moving or is it me?",
+                     "I could fly to the moon right now. Up. Up is that way.", "I'm the best duck. The besht.",
+                     "Don't tell my mother.", "One more. Just one.", "Why are there two of you?"],
+        .machineGun: ["NO PETS. NO PETS!", "BACK OFF, CURSOR!", "I SAID DON'T TOUCH ME!", "Say hello to my little friend!",
+                      "Hasta la vista, pointer.", "Get away from my feathers!"],
+        .noPets: ["Don't touch me. I'm in a mood.", "Hands off. I'm far too drunk for that.", "*swats at you*"],
+        .petSobers: ["Oh. Oh, that's nice. I'll drink less.", "Pets! Pets fix everything. Mostly.", "You DO care!",
+                     "Okay. Okay. I'm putting the beer down."],
+        .tooMuch: ["I've had enough. Even I have limits.", "No more. The room's spinning.", "Cut me off. Please. Gently."],
+        .bread: ["BREAD! You remembered!", "Om nom nom. Best day ever.", "Bread. Tastes like love.", "Carbs! My one weakness."],
+        .coffee: ["I'M AWAKE. I'M SO AWAKE.", "Coffee! I can hear colours.", "Wow. Okay. Let's do some WORK."],
+        .soberedUp: ["Ugh. What did I do last night?", "I'm sober. I regret everything.", "Did I shoot something? I feel like I shot something.",
+                     "Coffee. Okay. Who put this haircut on me?"],
+        .cansGone: ["Ooh, tidy.", "Thanks! It was getting messy down there.", "Clean desk, clean mind."],
+        .cansGoneDrunk: ["Hey! I was going to recycle those. Later.", "My cans! My precious cans!", "You can't take my cans."],
     ]
 
     // MARK: - Lines each personality says (on top of the shared ones)
@@ -235,6 +269,9 @@ nonisolated enum Lines {
             .thrown: ["AIRBORNE ASSAULT!", "PARATROOPER DOWN!"],
             .typingFrantic: ["THAT'S IT, RECRUIT! TYPE LIKE YOU MEAN IT!"],
             .pokeDare: ["TOUCH ME ONE MORE TIME, RECRUIT."],
+            .sit: ["SITTING AT ATTENTION, RECRUIT. AWAITING ORDERS."],
+            .machineGun: ["SUPPRESSING FIRE!", "CURSOR AT TWELVE O'CLOCK! OPEN FIRE!"],
+            .gotWasted: ["THE SERGEANT IS OFF DUTY. THE SERGEANT IS ARMED."],
         ],
         .wholesome: [
             .hello: ["Hi! I'm {name}! I'm so happy to be on your desktop! 💛", "Hello friend! Tell me your dreams and I'll cheer you on!"],
@@ -248,6 +285,9 @@ nonisolated enum Lines {
             .closed: ["Let's take a little break from {site}, okay? 💛"],
             .idleGrumpy: ["I'm a little grumpy, but I still love you. 💛"],
             .pokeDare: ["Hehe, okay, one more and I'll... boop you back!"],
+            .sit: ["Sitting! Am I a good duck? I'm a good duck! 💛"],
+            .drunkIdle: ["I love you SO much. Have I told you? I love you. 💛"],
+            .machineGun: ["Sorry! Sorry! It's the beer! 💛 RATATAT"],
         ],
         .unhinged: [
             .hello: ["I am {name}. I have no fear. I have no bills. I have a tiny gun.", "Hello. I've been released into your Mac. No refunds."],
@@ -266,6 +306,8 @@ nonisolated enum Lines {
             .windowGone: ["THE FLOOR IS A LIE"],
             .typingFrantic: ["Yes. Type faster. Feed the machine. FEED IT."],
             .pokeBang: ["I warned you. I have no regrets. I have a gun."],
+            .drunkIdle: ["I can see the code of the universe. It's mostly bread.", "Let's call your ex. No, MY ex. The goose."],
+            .machineGun: ["THE CURSOR KNOWS WHAT IT DID.", "I'M NOT DRUNK, I'M ARMED."],
         ],
     ]
 

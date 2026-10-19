@@ -14,6 +14,12 @@ struct Prefs: Codable, Equatable {
     var dance = true
     /// After a while of good music: sunglasses, middle fingers, chaos.
     var goBananas = true
+    /// Shows up on every desktop (Space) instead of staying on the one it started on.
+    var allDesktops = true
+    /// Left without pets, it hits the beer. How fast.
+    var drinking = Drinking.normal
+    /// Once it's had far too many, trying to pet it gets your cursor shot across the screen.
+    var machineGun = true
 
     var goals: [Goal] = [.saveMoney]
     /// Things you told the duck in your own words, like "I'm learning Spanish". The AI brain reads them.
@@ -111,6 +117,32 @@ nonisolated enum Voice: String, Codable, CaseIterable, Identifiable, Sendable {
         case .mumble: "Low, cosy mumbling, like a tiny Sim."
         case .robot: "Beep boop. A duck from the future."
         case .off: "Just the speech bubble."
+        }
+    }
+}
+
+/// How quickly a duck nobody pets turns to drink.
+enum Drinking: String, Codable, CaseIterable, Identifiable {
+    case off, slowly, normal, party
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .off: "Never"
+        case .slowly: "Slowly"
+        case .normal: "Normal"
+        case .party: "Party animal"
+        }
+    }
+
+    /// Minutes without a pet before the first beer, and between the ones after.
+    var minutes: (first: Double, then: Double)? {
+        switch self {
+        case .off: nil
+        case .slowly: (30, 15)
+        case .normal: (15, 8)
+        case .party: (1, 1)
         }
     }
 }

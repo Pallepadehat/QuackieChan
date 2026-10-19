@@ -7,7 +7,7 @@ import AVFoundation
 final class Sounds {
     static let shared = Sounds()
 
-    enum Effect: CaseIterable { case gunshot, cock, quack, tick, spared, pop, thud, whoosh }
+    enum Effect: CaseIterable { case gunshot, cock, quack, tick, spared, pop, thud, whoosh, machineGun, canOpen, clink }
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
@@ -68,7 +68,37 @@ nonisolated enum Synth {
         case .pop: return buffer(sweep(from: 900, to: 300, length: 0.07, volume: 0.4), format)
         case .thud: return buffer(sweep(from: 140, to: 50, length: 0.18, volume: 0.7), format)
         case .whoosh: return buffer(whoosh(), format)
+        case .machineGun: return buffer(machineGun(), format)
+        case .canOpen: return buffer(canOpen(), format)
+        case .clink: return buffer(tone(2350, length: 0.09, decay: 0.03, volume: 0.25) + tone(3400, length: 0.12, decay: 0.04, volume: 0.18), format)
         }
+    }
+
+    /// A burst of fire: the start of the pistol shot again and again, each one a little different, then the echo.
+    static func machineGun() -> [Float] {
+        let shot = Array((pistol ?? gunshot()).prefix(Int(rate * 0.075)))
+        var out: [Float] = []
+        for index in 0..<16 {
+            let volume = Float.random(in: 0.6...0.9) * (index == 15 ? 1 : 0.85)
+            out += shot.enumerated().map { i, sample in
+                sample * volume * max(0, 1 - Float(i) / Float(shot.count))  // cut each off before the next
+            }
+        }
+        return out + Array((pistol ?? gunshot()).dropFirst(Int(rate * 0.075)).prefix(Int(rate * 0.5))).map { $0 * 0.6 }
+    }
+
+    /// A can of beer opening: the click of the tab, then the hiss.
+    static func canOpen() -> [Float] {
+        let click = tone(2600, length: 0.03, decay: 0.008, volume: 0.4)
+        var high: Float = 0, last: Float = 0
+        let hiss = (0..<Int(rate * 0.4)).map { i -> Float in
+            let t = Float(Double(i) / rate)
+            let noise = Float.random(in: -1...1)
+            high = 0.92 * (high + noise - last)  // one-pole high-pass: just the fizz
+            last = noise
+            return high * 0.22 * min(1, t / 0.01) * exp(-t / 0.13)
+        }
+        return click + silence(0.02) + hiss
     }
 
     /// A pistol shot: a sharp crack, the body of the blast, a low thump, and the room ringing after.

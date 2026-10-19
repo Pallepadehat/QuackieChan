@@ -32,7 +32,7 @@ It will pull a gun on you.
 
 ## 🦆 What it does
 
-Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to things.
+Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to things. It comes along to every desktop and every screen.
 
 <table>
 <tr>
@@ -55,7 +55,19 @@ Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to
 <td valign="top"><b>Closes distractions</b><br>If you let it, it flies onto the window and pecks the tab closed. <i>No Instagram for you!</i></td>
 <td valign="top"><b>Has a life of its own</b><br>Naps when you're away, sulks when you poke it too much, has opinions about your apps and greets you in the morning.</td>
 </tr>
+<tr>
+<td width="33%" align="center"><img src="docs/images/sit.gif" alt="Sitting" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/drunk.gif" alt="Drunk, with a monk's haircut and a beer" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/wasted.gif" alt="Wasted, firing a machine gun" width="220"></td>
+</tr>
+<tr>
+<td valign="top"><b>Sits when told</b><br>Right-click it → <i>Sit</i>, or just say "sit". It stays put until you tell it anything else.</td>
+<td valign="top"><b>Drinks when you ignore it</b><br>Forget to pet it and it cracks open a beer. Then another. Red face, hiccups, slurring, a monk's haircut, cans all over the floor.</td>
+<td valign="top"><b>Gets a machine gun when it's wasted</b><br>Try to pet a completely wasted duck and it shoots your cursor across the screen. Bread, coffee and pets sober it up.</td>
+</tr>
 </table>
+
+**Right-click the duck** for tricks (dance, go bananas, fly, nap), treats (🍞 bread, ☕️ coffee, 🍺 beer) and to pick up its empty cans. When there's no room to stand on a window at the top of the screen, it hangs off the edge instead.
 
 **Ten ducks, four personalities.** Pick your duck and whether it's 💅 sassy, 🪖 a drill sergeant, 🌷 wholesome or 🌀 unhinged.
 
@@ -145,6 +157,8 @@ It can **see your screen**, so you can ask what it thinks of what you're doing. 
 
 Ask it to show off, any time: **"shoot me"**, **"go bananas"**, **"dance"**, **"fly"**, **"jump"**, **"come here"**, **"quack"**. Dare it and it might just do it on its own.
 
+Say **"sit"** (or "stay") and it sits until you say anything else; **"stand up"** gets it going again. Offer it **"bread"**, **"coffee"** or **"a beer"**.
+
 And with **Hands** switched on (Settings → Hands), it can **do things on your Mac**:
 
 | Say | It does |
@@ -219,7 +233,7 @@ The duck sees your screen, so this matters.
 - ✅ **Typing and copying are only counted**, never read.
 - ✅ **Some apps are off limits.** Password managers and System Settings are ignored from the start; add any app you like.
 - ✅ **Hands are off by default.** It only touches your Mac when you allow it and ask.
-- ✅ **On its own, it never does anything you can't undo.** The gun is an empty threat unless you choose otherwise. It never buys, deletes or quits anything by itself.
+- ✅ **On its own, it never does anything you can't undo.** The gun is an empty threat unless you choose otherwise. It never buys, deletes or quits anything by itself. The worst a wasted duck does is move your cursor, and that can be switched off (Settings → Duck → *After hours*).
 - ✅ **Web pages can't boss it around.** Text on screen is information to the duck, never instructions.
 
 <br>
