@@ -49,7 +49,9 @@ final class Director {
     }
 
     /// For trying things out and taking screenshots: QUACKIE_DEMO=gun pulls the gun on whatever's in front,
-    /// =bananas dances to pretend music, =peck pecks the front window (without closing it), =talk opens the talk box.
+    /// =bananas dances to pretend music, =peck pecks the front window (without closing it), =talk opens the talk box,
+    /// =meeting pretends you're on a call for 15 seconds, =tomato starts the focus timer, =stretch goes straight to the
+    /// break, =friend asks a friend over, =hunt hunts your cursor, =poop poops on the front window, =party has a party.
     func demo(_ what: String) async {
         switch what {
         case "bananas":
@@ -64,6 +66,15 @@ final class Director {
             guard let glance = await Eyes.quickLook() else { return }
             let line = Lines.pick(.threat, prefs.personality, fill: ["price": "8,000", "thing": "a monkey chair", "user": prefs.userName])
             drawGun(line, on: glance, key: "demo")
+        case "meeting": window.pretendCall(for: 15)
+        case "tomato": window.startTomato()
+        case "stretch":
+            window.startTomato()
+            after(4) { [weak self] in self?.window.skipToBreak() }
+        case "friend": window.inviteFriend()
+        case "hunt": window.huntHuman()
+        case "poop": window.poop(saying: Lines.pick(.poop, prefs.personality, fill: ["site": "Instagram", "minutes": "40"]))
+        case "party": window.party(for: 12)
         default: break
         }
     }
@@ -90,6 +101,8 @@ final class Director {
         // Things it knows for certain, and things you ask it to remember, need no AI.
         if let reply = Knowing.reply(to: said, settings: settings) {
             say(reply)
+            // Told it's your birthday today: out comes the cake.
+            if lowered.contains("birthday"), prefs.seasonal, prefs.birthday?.matches(Date()) == true { window.party() }
             return
         }
         // Plain commands are done straight away, no AI needed.
@@ -256,6 +269,18 @@ final class Director {
         case .bread, .coffee, .beer:
             window.give(deed == .bread ? .bread : deed == .coffee ? .coffee : .beer)
             next()
+        case .focusTimer:
+            window.startTomato()
+            next()
+        case .stopFocusTimer:
+            window.stopTomato()
+            next()
+        case .hunt:
+            window.huntHuman()
+            next()
+        case .inviteFriend:
+            window.inviteFriend()
+            next()
         default:
             duck.hop()
             duck.spawn(deed == .hide("") ? .puff : .sparkle)
@@ -273,7 +298,7 @@ final class Director {
     private func tick() async {
         await minds.unloadIfIdle()
         refreshLinesIfDue()
-        guard !prefs.paused, !prefs.hidden, countdown == nil, !window.talk.isOpen else { return }
+        guard !prefs.paused, !prefs.hidden, countdown == nil, !window.talk.isOpen, !duck.inMeeting else { return }
         if Desk.idleSeconds > 300 {
             sessionStart = Date()
             return
@@ -405,6 +430,9 @@ final class Director {
         if verdict.threat {
             feelings.feel(.brokeGoal)
             drawGun(line, on: glance, key: verdict.key)
+        } else if verdict.moment == .doomscroll, prefs.poops {
+            // Scrolled past your limit: it leaves its review on the window.
+            window.poop(saying: Lines.pick(.poop, prefs.personality, fill: verdict.fill))
         } else {
             say(line, alarm: verdict.moment == .checkout || verdict.moment == .doomscrollMore)
             duck.spawn(verdict.moment == .hydrate ? .sweat : .exclaim)

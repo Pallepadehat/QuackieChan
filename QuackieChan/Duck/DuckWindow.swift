@@ -31,6 +31,8 @@ final class DuckWindow {
     let duck = Duck()
     let talk = Talk()
     var actions = DuckActions()
+    /// What's left on the focus timer, like "🍅 12:34", or nil when it's off. For the menu bar.
+    var onTimer: ((String?) -> Void)?
     /// Something happened the duck has feelings about.
     var onEvent: ((Feelings.Event) -> Void)?
 
@@ -41,6 +43,7 @@ final class DuckWindow {
     private var feelings: Feelings { .shared }
     private var booze: Booze { .shared }
     private var litter: Litter { .shared }
+    private var droppings: Droppings { .shared }
     private var prefs: Prefs { Settings.shared.prefs }
     private var observers: [NSObjectProtocol] = []
 
@@ -96,6 +99,17 @@ final class DuckWindow {
     private var shove: (from: CGPoint, to: CGPoint, start: TimeInterval)?
     private var lastBurst = Date.distantPast
 
+    /// The focus timer: focusing or on a break, until when, and which round.
+    private var tomato: (resting: Bool, until: Date, round: Int)?
+    /// The stretch break: whether you said you'd join in, and the key count when it started.
+    private var stretch: (joined: Bool, keys: UInt32)?
+    /// The reverse Duck Hunt: where the crosshair is, how long it's been on the cursor, hits, and when it ends.
+    private var hunt: (at: CGPoint, lockedOn: TimeInterval, hits: Int, lastShot: TimeInterval, starts: Date, ends: Date)?
+    private lazy var crosshair = Crosshair()
+    private var visitor: Visitor?
+    private var lastVisit = Date()
+    private var onACall = false
+
     /// On every desktop, or just the one it was started on.
     static var behavior: NSWindow.CollectionBehavior {
         Settings.shared.prefs.allDesktops ? [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
@@ -150,6 +164,7 @@ final class DuckWindow {
         panel.orderFrontRegardless()
         bubblePanel.orderFrontRegardless()
         litter.show()
+        droppings.show()
         startTicking(fast: true)
     }
 
@@ -175,14 +190,17 @@ final class DuckWindow {
     }
 
     private var isMoving: Bool {
-        airborne || dragging || walkTarget != nil || duck.isDancing || duck.isInMotion || shove != nil
-            || [.typing, .celebrating, .pecking, .dizzy, .shooting, .eating].contains(duck.activity)
+        airborne || dragging || walkTarget != nil || duck.isDancing || duck.isInMotion || shove != nil || hunt != nil
+            || [.typing, .celebrating, .pecking, .dizzy, .shooting, .eating, .stretching, .fighting, .partying, .pooping]
+                .contains(duck.activity)
     }
 
     func hide() {
         panel.orderOut(nil)
         bubblePanel.orderOut(nil)
         litter.hide()
+        droppings.hide()
+        if hunt != nil { endHunt() }
         ticker?.invalidate()
         ticker = nil
     }
@@ -219,7 +237,9 @@ final class DuckWindow {
         if shove != nil { blowCursorAway() }
         if every(0.1, "clicks") { updatePassThrough(mouse) }
         if every(0.5, "notice") { noticeTyping(); noticeAway(); noticeMouse(mouse) }
-        if every(1, "feel") { feelings.drift(by: 1); resizeIfNeeded(); drinkIfThirsty() }
+        if every(1, "feel") { feelings.drift(by: 1); resizeIfNeeded(); drinkIfThirsty(); tickTomato() }
+        if every(2, "call") { noticeCall() }
+        if hunt != nil { chase(mouse, dt) }
         if every(4, "music"), ProcessInfo.processInfo.environment["QUACKIE_DEMO"] != "bananas" { noticeMusic() }
         if let since = hoverSince, !dragging { beingPetted(for: Date().timeIntervalSince(since)) }
         if hoverSince == nil, duck.activity == .petted { duck.set(.idle) }
@@ -535,8 +555,15 @@ final class DuckWindow {
             }
             return
         }
-        // Told to sit, it stays put and fidgets.
-        if duck.staying {
+        if duck.inMeeting { return }
+        // A friend drops by now and then, while you're around.
+        if prefs.visitors, perch == nil, !airborne, Date().timeIntervalSince(lastVisit) > 45 * 60,
+           Desk.idleSeconds < 60, !duck.onTomato, !duck.staying, Int.random(in: 0..<12) == 0 {
+            friendDropsBy()
+            return
+        }
+        // Told to sit, or on the tomato, it stays put and fidgets.
+        if duck.staying || duck.onTomato {
             switch Int.random(in: 0..<6) {
             case 0: duck.yawn()
             case 1: duck.spawn(.heart)
@@ -908,8 +935,9 @@ final class DuckWindow {
         duck.beat = 60 / (playing.bpm ?? 120)
         feelings.feel(.music)
 
-        // Told to sit, or hanging on, it just enjoys it where it is.
-        if duck.staying || hanging {
+        // On a call it keeps very still. Told to sit, on the tomato, or hanging on, it just enjoys it where it is.
+        if duck.inMeeting { return }
+        if duck.staying || hanging || duck.onTomato {
             if Int.random(in: 0..<2) == 0 { duck.spawn(.note) }
             return
         }
@@ -947,6 +975,19 @@ final class DuckWindow {
             return
         }
         if talk.isOpen { return }
+        // On the tomato: how long you've got left.
+        if duck.onTomato, let timer = tomato {
+            let minutes = max(1, Int((timer.until.timeIntervalSinceNow / 60).rounded(.up)))
+            duck.quack()
+            duck.say("\(minutes) minute\(minutes == 1 ? "" : "s") left. Back to work. 🍅")
+            return
+        }
+        // On a call: a finger to the beak.
+        if duck.inMeeting {
+            duck.spawn(.shh)
+            duck.hop()
+            return
+        }
         // Far too drunk to be poked.
         if booze.stage == .wasted, prefs.machineGun {
             if now.timeIntervalSince(lastBurst) > 1.5 { openFire() }
@@ -1127,13 +1168,15 @@ final class DuckWindow {
         }
     }
 
-    /// Picks up the empty cans.
-    func cleanUpCans() {
-        guard !litter.isEmpty else { return }
+    /// Picks up the empty cans and cleans the poop off your windows.
+    func cleanUp() {
+        guard !litter.isEmpty || !droppings.isEmpty else { return }
+        let cans = !litter.isEmpty
         litter.clear()
+        droppings.clear()
         Sounds.shared.play(.pop)
         duck.spawn(.sparkle)
-        duck.say(Lines.pick(booze.stage > .sober ? .cansGoneDrunk : .cansGone, prefs.personality))
+        duck.say(Lines.pick(cans ? (booze.stage > .sober ? .cansGoneDrunk : .cansGone) : .poopGone, prefs.personality))
     }
 
     /// Too drunk to be touched: out comes the machine gun, and the cursor gets blown across the screen.
@@ -1183,6 +1226,357 @@ final class DuckWindow {
         if t >= 1 { self.shove = nil }
     }
 
+    // MARK: Calls
+
+    /// On a call, it puts on a tie, holds up the ON AIR sign and doesn't make a sound until it's over.
+    private func noticeCall() {
+        guard prefs.meetingMode || onACall, ProcessInfo.processInfo.environment["QUACKIE_DEMO"] != "meeting" else { return }
+        let listening = talk.listening
+        Task { [weak self] in
+            let now = await Meetings.onACall(listening: listening)
+            self?.callChanged(now && Settings.shared.prefs.meetingMode)
+        }
+    }
+
+    /// For the demo: on a call for a while, whatever the camera says.
+    func pretendCall(for seconds: TimeInterval) {
+        callChanged(true)
+        after(seconds) { [weak self] in self?.callChanged(false) }
+    }
+
+    private func callChanged(_ now: Bool) {
+        guard now != onACall else { return }
+        onACall = now
+        if now {
+            duck.hush()
+            if hanging { letGoOfTheEdge() }
+            walkTarget = nil
+            moonwalking = false
+            if duck.isDancing || duck.activity == .typing || duck.activity == .sleeping { duck.set(.idle) }
+            Sounds.shared.hushed = true
+            duck.meeting(true)
+        } else {
+            Sounds.shared.hushed = false
+            duck.meeting(false)
+            duck.hop()
+            after(0.8) { [weak self] in self?.say(.meetingOver) }
+        }
+    }
+
+    // MARK: The tomato timer
+
+    var isTiming: Bool { tomato != nil }
+
+    /// Starts the focus timer, or stops it if it's running.
+    func toggleTomato() {
+        if tomato != nil { stopTomato() } else { startTomato(round: 1) }
+    }
+
+    func startTomato(round: Int = 1) {
+        if !isVisible { show() }
+        standUp(saying: false)
+        if hanging { letGoOfTheEdge() }
+        walkTarget = nil
+        moonwalking = false
+        stretch = nil
+        tomato = (false, Date().addingTimeInterval(Double(prefs.focusMinutes) * 60), round)
+        if duck.isDancing || [.typing, .stretching, .sulking].contains(duck.activity) { duck.set(.idle) }
+        duck.tomato(true)
+        duck.hop()
+        Sounds.shared.play(.pop)
+        tickTomato()
+        duck.say(Lines.pick(.tomatoStart, prefs.personality, fill: ["minutes": "\(prefs.focusMinutes)", "user": prefs.userName]))
+    }
+
+    /// For the demo: the bell goes now.
+    func skipToBreak() {
+        guard let timer = tomato, !timer.resting else { return }
+        takeABreak(round: timer.round)
+    }
+
+    func stopTomato() {
+        guard tomato != nil else { return }
+        tomato = nil
+        stretch = nil
+        duck.tomato(false)
+        onTimer?(nil)
+        if duck.activity == .stretching { duck.set(.idle) }
+        say(.tomatoStopped)
+    }
+
+    /// Once a second: the time left over its head, and the bell when it runs out.
+    private func tickTomato() {
+        guard let timer = tomato else { return }
+        let left = max(0, Int(timer.until.timeIntervalSinceNow.rounded(.up)))
+        onTimer?("\(timer.resting ? "☕️" : "🍅") \(left / 60):\(String(format: "%02d", left % 60))")
+        if let stretch, duck.activity == .stretching, !stretch.joined, Desk.keyPresses &- stretch.keys > 25 {
+            skippedStretch()
+        }
+        guard left == 0 else { return }
+        if timer.resting { breakOver(round: timer.round) } else { takeABreak(round: timer.round) }
+    }
+
+    /// DING. Off the tomato and into some stretches, which you're meant to do too.
+    private func takeABreak(round: Int) {
+        let minutes = round % 4 == 0 ? prefs.breakMinutes * 3 : prefs.breakMinutes
+        tomato = (true, Date().addingTimeInterval(Double(minutes) * 60), round)
+        Sounds.shared.play(.ding)
+        duck.tomato(false)
+        // No stretching on camera.
+        if airborne || dragging || duck.inMeeting { return }
+        stretch = (false, Desk.keyPresses)
+        if hanging { letGoOfTheEdge() }
+        walkTarget = nil
+        duck.set(.stretching)
+        duck.say(Lines.pick(.tomatoBreak, prefs.personality, fill: ["user": prefs.userName]), choices: [
+            .init(title: "Stretching with you 💪") { [weak self] in
+                guard let self else { return }
+                self.stretch?.joined = true
+                self.duck.say(Lines.pick(.stretchYes, self.prefs.personality))
+            },
+            .init(title: "Skip") { [weak self] in self?.skippedStretch() },
+        ], hold: 30)
+        after(40) { [weak self] in self?.stretchesDone() }
+    }
+
+    private func stretchesDone() {
+        guard let stretch, duck.activity == .stretching else { return }
+        self.stretch = nil
+        duck.set(.celebrating)
+        duck.spawn(.sparkle)
+        if stretch.joined {
+            feelings.feel(.keptGoal)
+            duck.say(Lines.pick(.stretchDone, prefs.personality, fill: ["user": prefs.userName]))
+        }
+        after(1.5) { [weak self] in if self?.duck.activity == .celebrating { self?.duck.set(.idle) } }
+    }
+
+    /// You didn't stretch. It noticed.
+    private func skippedStretch() {
+        guard stretch != nil else { return }
+        stretch = nil
+        feelings.feel(.snubbed)
+        duck.facingLeft.toggle()
+        duck.set(.sulking)
+        duck.say(Lines.pick(.stretchSkipped, prefs.personality, fill: ["user": prefs.userName]))
+        after(.random(in: 15...25)) { [weak self] in if self?.duck.activity == .sulking { self?.duck.set(.idle) } }
+    }
+
+    private func breakOver(round: Int) {
+        tomato = nil
+        stretch = nil
+        onTimer?(nil)
+        if duck.activity == .stretching { duck.set(.idle) }
+        Sounds.shared.play(.ding)
+        duck.say(Lines.pick(.tomatoBack, prefs.personality), choices: [
+            .init(title: "Another round 🍅") { [weak self] in self?.startTomato(round: round + 1) },
+            .init(title: "I'm done") { [weak self] in
+                self?.duck.hush()
+                self?.say(.tomatoStopped)
+            },
+        ], hold: 60)
+    }
+
+    // MARK: Poop
+
+    /// Flies onto the front window, leaves it a little something, and says `line`.
+    func poop(saying line: String) {
+        guard !airborne, !dragging, !duck.isBusy, !duck.inMeeting else { return duck.say(line) }
+        standUp(saying: false)
+        walkTarget = nil
+        moonwalking = false
+        visitFrontWindow { [weak self] in
+            guard let self else { return }
+            self.duck.set(.pooping)
+            self.after(1.2) { [weak self] in
+                guard let self, self.duck.activity == .pooping else { return }
+                // Out the back end, which is whichever way it isn't facing.
+                let behind = self.feet.x + (self.duck.facingLeft ? 1 : -1) * 18 * self.pixel
+                self.droppings.drop(on: self.perch, x: behind, floor: CGPoint(x: behind, y: self.feet.y))
+                Sounds.shared.play(.splat)
+                self.duck.spawn(.stink, at: CGPoint(x: self.duck.facingLeft ? 50 : 8, y: 44))
+                self.after(0.6) { [weak self] in
+                    guard let self else { return }
+                    self.duck.set(.idle)
+                    self.duck.say(line)
+                }
+            }
+        }
+    }
+
+    // MARK: Birthdays
+
+    /// Cake, party horn, confetti.
+    func party(for seconds: TimeInterval = 6) {
+        guard !airborne, !dragging, !duck.inMeeting else { return }
+        if hanging {
+            // Not while holding on by one wing: down first, then the cake.
+            letGoOfTheEdge()
+            onLand = { [weak self] in self?.party(for: seconds) }
+            return
+        }
+        standUp(saying: false)
+        walkTarget = nil
+        duck.set(.partying)
+        Sounds.shared.play(.partyHorn)
+        feelings.feel(.bananas)
+        after(1.6) { [weak self] in if self?.duck.activity == .partying { Sounds.shared.play(.partyHorn) } }
+        after(seconds) { [weak self] in if self?.duck.activity == .partying { self?.duck.set(.idle) } }
+    }
+
+    // MARK: Human hunt
+
+    /// The Konami code: the tables turn, and the duck hunts your cursor for twenty seconds.
+    func huntHuman() {
+        if !isVisible { show() }
+        guard hunt == nil, !airborne, !dragging, !duck.inMeeting else { return }
+        if hanging {
+            letGoOfTheEdge()
+            onLand = { [weak self] in self?.huntHuman() }
+            return
+        }
+        standUp(saying: false)
+        walkTarget = nil
+        moonwalking = false
+        talk.close()
+        let start = CGPoint(x: feet.x + 20 * pixel, y: feet.y + spriteHeight * 0.4)
+        hunt = (start, 0, 0, 0, Date().addingTimeInterval(1.5), Date().addingTimeInterval(21.5))
+        crosshair.show(at: start)
+        duck.set(.hunting)
+        Sounds.shared.play(.cock)
+        duck.say(Lines.pick(.huntStart, prefs.personality, fill: ["user": prefs.userName]), alarm: true, hold: 3)
+    }
+
+    /// Steers the crosshair after the cursor, a little faster as time goes on, and fires once it's held on.
+    private func chase(_ mouse: CGPoint, _ dt: TimeInterval) {
+        guard var game = hunt else { return }
+        let now = Date()
+        if now > game.ends || duck.activity != .hunting { return endHunt() }
+        guard now > game.starts else { return }
+        let elapsed = now.timeIntervalSince(game.starts)
+        let speed = CGFloat(2.2 + elapsed * 0.22)
+        let follow = min(1, speed * CGFloat(dt))
+        game.at = CGPoint(x: game.at.x + (mouse.x - game.at.x) * follow, y: game.at.y + (mouse.y - game.at.y) * follow)
+        let onTarget = hypot(mouse.x - game.at.x, mouse.y - game.at.y) < 16
+        game.lockedOn = onTarget ? game.lockedOn + dt : max(0, game.lockedOn - dt)
+        let clock = ProcessInfo.processInfo.systemUptime
+        if game.lockedOn > 0.4, clock - game.lastShot > 0.9 {
+            game.lastShot = clock
+            game.lockedOn = 0
+            game.hits += 1
+            duck.bang()
+            duck.spawn(.laugh)
+            crosshair.flash()
+            Sounds.shared.play(.gunshot)
+            if game.hits % 3 == 1 { duck.say(Lines.pick(.huntHit, prefs.personality), hold: 1.5) }
+        }
+        crosshair.move(to: game.at)
+        hunt = game
+    }
+
+    private func endHunt() {
+        guard let game = hunt else { return }
+        hunt = nil
+        crosshair.hide()
+        duck.set(game.hits > 0 ? .celebrating : .sulking)
+        if game.hits > 0 { duck.spawn(.laugh); feelings.feel(.firedGun) }
+        duck.say(Lines.pick(game.hits > 0 ? .huntOver : .huntMissed, prefs.personality,
+                            fill: ["hits": "\(game.hits)", "user": prefs.userName]))
+        after(2.5) { [weak self] in
+            if self?.duck.activity == .celebrating || self?.duck.activity == .sulking { self?.duck.set(.idle) }
+        }
+    }
+
+    // MARK: Visitors
+
+    /// Asks a friend over. Down to the floor first, if it's up on a window.
+    func inviteFriend() {
+        if !isVisible { show() }
+        guard visitor == nil, !airborne, !dragging, !duck.inMeeting, hunt == nil else { return }
+        standUp(saying: false)
+        if perch != nil || hanging {
+            flyTo(floor(at: feet.x))
+            onLand = { [weak self] in self?.friendDropsBy() }
+            return
+        }
+        friendDropsBy()
+    }
+
+    /// Another duck flies in, the two of them gossip about you, and then they fight. The guest always leaves.
+    private func friendDropsBy() {
+        guard visitor == nil, perch == nil, !airborne else { return }
+        lastVisit = Date()
+        walkTarget = nil
+        moonwalking = false
+        if duck.activity != .idle, duck.isFree { duck.set(.idle) }
+        let visible = screen.visibleFrame
+        // It lands on whichever side has more room.
+        let side: CGFloat = feet.x - visible.minX > visible.maxX - feet.x ? -1 : 1
+        let gap = 44 * pixel
+        if (side < 0 && feet.x - gap < visible.minX + 40) || (side > 0 && feet.x + gap > visible.maxX - 40) { return }
+        let spot = CGPoint(x: feet.x + side * gap, y: feet.y)
+        let entrance = CGPoint(x: side < 0 ? visible.minX - 120 : visible.maxX + 120, y: feet.y + 260)
+        let guest = Visitor(not: prefs.skin, from: entrance)
+        visitor = guest
+        duck.facingLeft = side < 0
+        duck.spawn(.question)
+        guest.arrive(at: spot) { [weak self, weak guest] in
+            guard let self, let guest else { return }
+            guest.duck.facingLeft = side > 0
+            self.duck.facingLeft = side < 0
+            let fill = ["user": self.prefs.userName, "name": self.prefs.duckName, "friend": guest.skin.name,
+                        "app": NSWorkspace.shared.frontmostApplication?.localizedName ?? "the internet"]
+            self.gossip(Lines.gossip.randomElement() ?? [], fill: fill, with: guest, exit: entrance)
+        }
+    }
+
+    private func gossip(_ script: [(mine: Bool, line: String)], fill: [String: String], with guest: Visitor, exit: CGPoint) {
+        guard let (mine, raw) = script.first else { return fight(guest, exit: exit) }
+        var line = raw
+        for (key, value) in fill { line = line.replacingOccurrences(of: "{\(key)}", with: value.isEmpty ? "your human" : value) }
+        if mine {
+            guest.duck.hush()
+            duck.say(prefs.personality == .sergeant ? line.uppercased() : line, hold: 3)
+        } else {
+            duck.hush()
+            guest.duck.say(guest.personality == .sergeant ? line.uppercased() : line, hold: 3)
+        }
+        let pause = min(4, 1.6 + Double(line.count) * 0.04)
+        after(pause) { [weak self] in self?.gossip(Array(script.dropFirst()), fill: fill, with: guest, exit: exit) }
+    }
+
+    /// A brawl in a cloud of feathers, then one of them comes off worse and the guest flies off.
+    private func fight(_ guest: Visitor, exit: CGPoint) {
+        duck.hush()
+        guest.duck.hush()
+        duck.set(.fighting)
+        guest.duck.set(.fighting)
+        feelings.feel(.landedHard)
+        for beat in 0..<10 {
+            after(Double(beat) * 0.32) { [weak guest] in
+                Sounds.shared.play([.thud, .pop, .quack].randomElement()!)
+                guest?.shove(by: beat % 2 == 0 ? 6 : -6)
+            }
+        }
+        after(3.4) { [weak self] in
+            guard let self else { return }
+            let won = Bool.random()
+            guest.duck.set(won ? .dizzy : .celebrating)
+            self.duck.set(won ? .celebrating : .dizzy)
+            if !won { Sounds.shared.play(.thud) }
+            self.say(won ? .friendWon : .friendLost)
+            self.after(2) { [weak self] in
+                guard let self else { return }
+                guest.leave(to: exit) { [weak self] in
+                    guard let self else { return }
+                    self.visitor = nil
+                    if [.celebrating, .dizzy].contains(self.duck.activity) { self.duck.set(.idle) }
+                    if Int.random(in: 0..<2) == 0 { self.say(.friendGone) }
+                }
+            }
+        }
+    }
+
     // MARK: Clicks
 
     /// The panels only take clicks over the duck and its bubble; everywhere else they go to the window behind.
@@ -1209,7 +1603,7 @@ final class DuckWindow {
     // MARK: Helpers
 
     private func say(_ moment: Moment, fill: [String: String] = [:]) {
-        guard !duck.isBusy || [.thrown, .windowGone, .grabbed, .windowYanked, .takeOff, .newDesk, .summoned].contains(moment),
+        guard !duck.inMeeting, !duck.isBusy || [.thrown, .windowGone, .grabbed, .windowYanked, .takeOff, .newDesk, .summoned].contains(moment),
               !talk.isOpen else { return }
         duck.say(Lines.pick(moment, prefs.personality, fill: fill.merging(["user": prefs.userName]) { $1 }))
     }

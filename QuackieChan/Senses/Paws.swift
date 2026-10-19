@@ -15,11 +15,14 @@ nonisolated enum Deed: Equatable, Sendable {
     case dance, nap, shoot, quack, fly, jump, bananas, comeHere, sit, stand
     /// Treats.
     case bread, coffee, beer
+    /// The tomato timer, the reverse Duck Hunt, and asking a friend over.
+    case focusTimer, stopFocusTimer, hunt, inviteFriend
 
     /// Things the duck does with its own body, not your Mac.
     var isTrick: Bool {
         switch self {
-        case .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer, .remind: true
+        case .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer, .remind,
+             .focusTimer, .stopFocusTimer, .hunt, .inviteFriend: true
         default: false
         }
     }
@@ -107,6 +110,14 @@ enum Paws {
         case "bread", "have some bread", "have bread", "eat", "eat something", "have a snack", "snack", "brød", "spis": return [.bread]
         case "coffee", "have a coffee", "have some coffee", "drink coffee", "drink some coffee", "sober up", "kaffe": return [.coffee]
         case "beer", "have a beer", "drink a beer", "have a drink", "cheers", "øl", "tag en øl", "skål": return [.beer]
+        case "pomodoro", "start a pomodoro", "focus timer", "start the focus timer", "start a focus timer", "focus mode",
+             "tomato", "tomato timer", "fokus", "start en pomodoro": return [.focusTimer]
+        case "stop the timer", "stop the focus timer", "stop focus timer", "stop pomodoro", "stop the pomodoro", "cancel the timer",
+             "stop timer": return [.stopFocusTimer]
+        case "duck hunt", "human hunt", "hunt me", "up up down down left right left right b a", "konami", "konami code":
+            return [.hunt]
+        case "invite a friend", "invite your friend", "call a friend", "invite a duck", "get a friend", "bring a friend",
+             "inviter en ven": return [.inviteFriend]
         default: break
         }
 
@@ -247,7 +258,8 @@ enum Paws {
                 "tell application \"System Events\" to tell appearance preferences to set dark mode to \(value)")
             return result == nil ? Outcome(moment: .cantDoThat, failure: "macOS didn't let me. Allow Quackie Chan to control System Events.")
                 : Outcome(moment: .didIt)
-        case .remind, .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer:
+        case .remind, .dance, .nap, .shoot, .quack, .fly, .jump, .bananas, .comeHere, .sit, .stand, .bread, .coffee, .beer,
+             .focusTimer, .stopFocusTimer, .hunt, .inviteFriend:
             return Outcome(moment: .didIt)  // the director handles these itself
         }
     }

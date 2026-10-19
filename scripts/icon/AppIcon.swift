@@ -156,6 +156,8 @@ struct AppIconMaker {
         var lift: CGFloat = 0
         var tilt: CGFloat = 0
         var flipped = false
+        /// Another hat for this frame, say.
+        var skin: DuckSkin?
     }
 
     static func writeAnimations(to folder: URL) throws {
@@ -269,6 +271,56 @@ struct AppIconMaker {
         }
         try gif(wasted, skin: DuckSkin.with(id: "don"), bubble: "NO PETS. NO PETS!", alarm: true,
                 to: folder.appendingPathComponent("wasted.gif"))
+
+        // On a call: tie on, sign up, very still. Blinks, and that's it.
+        var meeting: [Frame] = []
+        for f in 0..<24 {
+            var pose = Pose(eyes: f == 15 || f == 16 ? .blink : .open, wing: .forward)
+            pose.tie = true
+            pose.onAir = true
+            meeting.append(Frame(pose: pose))
+        }
+        try gif(meeting, skin: DuckSkin.with(id: "sir"), bubble: "*whispers* you're on a call.", to: folder.appendingPathComponent("meeting.gif"))
+
+        // Sitting on the tomato timer while you focus.
+        var tomato: [Frame] = []
+        for f in 0..<24 {
+            var pose = Pose(eyes: f == 7 || f == 8 ? .blink : .open, bodyY: -3 + f / 12, legs: .tucked)
+            pose.tomato = true
+            tomato.append(Frame(pose: pose))
+        }
+        try gif(tomato, skin: quackie, bubble: "25 minutes. I'm guarding the tomato.", to: folder.appendingPathComponent("tomato.gif"))
+
+        // Break time: reach, lean, lean, squat.
+        var stretch: [Frame] = []
+        for move in 0..<4 {
+            for f in 0..<9 {
+                let t = Double(f) / 9
+                var pose = Pose(eyes: move == 3 ? .angry : .happy, headY: move == 0 ? -1 : 0, wing: move == 3 ? .forward : .up)
+                pose.bodyY = move == 3 ? 3 : 0
+                let tilt = move == 1 ? -12 * sin(.pi * t) : (move == 2 ? 12 * sin(.pi * t) : 0)
+                stretch.append(Frame(pose: pose, lift: move == 0 ? 1.5 * sin(.pi * t) : 0, tilt: tilt))
+            }
+        }
+        try gif(stretch, skin: bill, bubble: "Break! Stretch with me.", to: folder.appendingPathComponent("stretch.gif"))
+
+        // Your birthday: cake, party horn, a little hop.
+        var party: [Frame] = []
+        for f in 0..<24 {
+            var pose = Pose(eyes: .happy, wing: f % 6 < 3 ? .up : .rest, blush: true)
+            pose.legs = f % 6 < 3 ? .stepA : .stepB
+            pose.cake = true
+            pose.horn = f % 12 < 6 ? 2 : 1
+            party.append(Frame(pose: pose, lift: 2.5 * abs(sin(.pi * Double(f) / 6))))
+        }
+        try gif(party, skin: quackie.wearing(.party), bubble: "HAPPY BIRTHDAY!", to: folder.appendingPathComponent("party.gif"))
+
+        // Dressing up: December, Halloween week.
+        var seasons: [Frame] = []
+        for f in 0..<24 {
+            seasons.append(Frame(pose: Pose(eyes: f % 12 == 9 ? .blink : .open), skin: f < 12 ? quackie.wearing(.santa) : quackie.wearing(.pumpkin)))
+        }
+        try gif(seasons, skin: quackie, bubble: "Ho ho ho. Boo.", to: folder.appendingPathComponent("seasons.gif"))
     }
 
     /// Writes frames as a looping GIF on a dark rounded tile, with a speech bubble above the duck.
@@ -299,7 +351,7 @@ struct AppIconMaker {
             context.rotate(by: -frame.tilt * .pi / 180 * (frame.flipped ? -1 : 1))
             if frame.flipped { context.scaleBy(x: -1, y: 1) }
             context.translateBy(x: -art / 2 + 6 * pixel, y: -2 * pixel)
-            DuckArt.draw(skin: skin, pose: frame.pose, in: context, scale: pixel)
+            DuckArt.draw(skin: frame.skin ?? skin, pose: frame.pose, in: context, scale: pixel)
             context.restoreGState()
             CGImageDestinationAddImage(destination, context.makeImage()!, frameProperties)
         }

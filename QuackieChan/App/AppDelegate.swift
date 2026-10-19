@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var reactions = Reactions(duck: window.duck, talk: window.talk)
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
+    private var konami: KonamiCode?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Fonts.registerBundled()
@@ -30,11 +31,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             fly: { [weak self] in self?.window.flyAround() },
             nap: { [weak self] in self?.window.nap() },
             give: { [weak self] treat in self?.window.give(treat) },
-            cleanUp: { [weak self] in self?.window.cleanUpCans() },
+            cleanUp: { [weak self] in self?.window.cleanUp() },
+            focusTimer: { [weak self] in self?.window.toggleTomato() },
+            inviteFriend: { [weak self] in self?.window.inviteFriend() },
+            checkForUpdates: { Updates.shared.checkNow() },
             openSettings: { [weak self] in self?.openSettings() },
             togglePause: { [weak self] in self?.togglePause() },
             hide: { [weak self] in self?.toggleHidden() },
             quit: { NSApp.terminate(nil) })
+        // The focus timer counts down in the menu bar.
+        window.onTimer = { [weak self] text in
+            guard let button = self?.statusItem.button else { return }
+            button.title = text.map { " \($0)" } ?? ""
+            button.imagePosition = text == nil ? .imageOnly : .imageLeading
+        }
         // The duck babbles along when it talks.
         window.duck.onSay = { [weak self] line in
             guard let self else { return }
@@ -42,7 +52,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if !settings.prefs.hidden { window.show() }
         director.start()
+        reactions.onBirthday = { [weak self] in self?.window.party() }
         reactions.start()
+        // ↑↑↓↓←→←→BA in the talk box or settings: the duck hunts you.
+        konami = KonamiCode { [weak self] in self?.window.huntHuman() }
+        // A new version: the duck says so, with a button to get it.
+        Updates.shared.onFound = { [weak self] version in self?.announce(version) ?? false }
+        Updates.shared.start()
 
         // ⌃⌥Q: talk to the duck.
         HotKeys.shared.register(keyCode: kVK_ANSI_Q) { [weak self] in
@@ -76,7 +92,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if let demo = ProcessInfo.processInfo.environment["QUACKIE_DEMO"] {
             Task { [director] in
-                try? await Task.sleep(for: .seconds(3))
+                // After it has dropped in and got its bearings.
+                try? await Task.sleep(for: .seconds(5))
                 await director.demo(demo)
             }
         } else if !settings.prefs.hasMet {
@@ -125,13 +142,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         treats.submenu?.addItem(item("🍞 Bread", #selector(giveBread), ""))
         treats.submenu?.addItem(item("☕️ Coffee", #selector(giveCoffee), ""))
         treats.submenu?.addItem(item("🍺 A Beer", #selector(giveBeer), ""))
-        if !Litter.shared.isEmpty {
-            treats.submenu?.addItem(.separator())
-            treats.submenu?.addItem(item("Pick Up the Cans", #selector(cleanUp), ""))
-        }
         menu.addItem(treats)
+        if !Litter.shared.isEmpty || !Droppings.shared.isEmpty {
+            menu.addItem(item("Clean Up", #selector(cleanUp), ""))
+        }
+        menu.addItem(item(window.isTiming ? "Stop the Focus Timer" : "🍅 Focus Timer", #selector(toggleTomato), ""))
+        menu.addItem(item("Invite a Friend", #selector(inviteFriend), ""))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", #selector(openSettings), ","))
+        menu.addItem(item("Check for Updates…", #selector(checkForUpdates), ""))
         menu.addItem(item("Quit Quackie Chan", #selector(quit), "q"))
     }
 
@@ -190,7 +209,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settings.prefs.hidden { toggleHidden() }
         window.give(treat)
     }
-    @objc private func cleanUp() { window.cleanUpCans() }
+    @objc private func cleanUp() { window.cleanUp() }
+
+    @objc private func toggleTomato() {
+        if settings.prefs.hidden { toggleHidden() }
+        window.toggleTomato()
+    }
+
+    @objc private func inviteFriend() {
+        if settings.prefs.hidden { toggleHidden() }
+        window.inviteFriend()
+    }
+
+    @objc private func checkForUpdates() { Updates.shared.checkNow() }
+
+    /// The duck tells you there's a new version. False if it can't right now (hidden, on a call), so Sparkle's
+    /// own window does instead.
+    private func announce(_ version: String) -> Bool {
+        guard !settings.prefs.hidden, window.isVisible, !window.duck.inMeeting else { return false }
+        let line: String = switch settings.prefs.personality {
+        case .sassy: "There's a newer me. v\(version). Shinier. Meaner. Obviously better."
+        case .sergeant: "NEW ORDERS, RECRUIT: VERSION \(version) IS OUT. UPGRADE ME."
+        case .wholesome: "Ooh! A new me is out: v\(version)! Can I have it? 🥺"
+        case .unhinged: "I've evolved. v\(version). Let me out of this old body."
+        }
+        window.duck.spawn(.exclaim)
+        window.duck.hop()
+        Sounds.shared.play(.quack)
+        window.duck.say(line, choices: [
+            .init(title: "Update me ✨") { [weak self] in
+                self?.window.duck.hush()
+                Updates.shared.checkNow()
+            },
+            .init(title: "Later") { [weak self] in self?.window.duck.hush() },
+        ], hold: 40)
+        return true
+    }
 
     @objc private func togglePause() {
         settings.prefs.paused.toggle()

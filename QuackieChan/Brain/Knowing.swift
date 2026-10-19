@@ -43,6 +43,30 @@ enum Knowing {
             return known.isEmpty ? "Nothing yet. Tell me things! Say \"remember that…\"."
                 : "I know " + known.prefix(4).joined(separator: ", ") + (known.count > 4 ? ", and more." : ".")
         }
+        // Your birthday.
+        if ["it's my birthday", "its my birthday", "it is my birthday", "today is my birthday", "jeg har fødselsdag"].contains(where: text.hasPrefix) {
+            let today = Calendar.current.dateComponents([.month, .day], from: Date())
+            settings.prefs.birthday = MonthDay(month: today.month ?? 1, day: today.day ?? 1)
+            return flavour(personality, [
+                .sassy: "It's your BIRTHDAY? And you're on the computer? Fine. Cake. Now.",
+                .sergeant: "HAPPY BIRTHDAY, RECRUIT! THAT'S AN ORDER!",
+                .wholesome: "HAPPY BIRTHDAY! 🎂 I'll remember this day forever 💛",
+                .unhinged: "A BIRTHDAY. I'll get the cake. And the fireworks. And the goose.",
+            ])
+        }
+        if let date = text.firstMatch(of: /^(?:my birthday is|my birthday's|my bday is|min fødselsdag er|jeg har fødselsdag den) (.+)$/) {
+            guard let birthday = MonthDay.parse(String(date.1)) else { return "When? Tell me like \"my birthday is 5 March\"." }
+            settings.prefs.birthday = birthday
+            return flavour(personality, [
+                .sassy: "\(birthday.name). Noted. I'll pretend to be surprised.",
+                .sergeant: "\(birthday.name.uppercased()). CAKE IS SCHEDULED, RECRUIT.",
+                .wholesome: "\(birthday.name)! I'm putting on a party hat that day 🎉",
+                .unhinged: "\(birthday.name). I'll be there. In a hat. With a horn. Nobody can stop me.",
+            ])
+        }
+        if ["when is my birthday", "when's my birthday", "whens my birthday", "do you know my birthday", "hvornår har jeg fødselsdag"].contains(where: text.hasPrefix) {
+            return prefs.birthday.map { "\($0.name). Party hat's ready." } ?? "No idea! Tell me: \"my birthday is 5 March\"."
+        }
         // Its own name.
         if ["what's your name", "whats your name", "what is your name", "who are you", "what are you called",
             "hvad hedder du", "hvem er du"].contains(where: text.hasPrefix) {

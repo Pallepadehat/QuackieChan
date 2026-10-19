@@ -7,7 +7,13 @@ import AVFoundation
 final class Sounds {
     static let shared = Sounds()
 
-    enum Effect: CaseIterable { case gunshot, cock, quack, tick, spared, pop, thud, whoosh, machineGun, canOpen, clink }
+    enum Effect: CaseIterable {
+        case gunshot, cock, quack, tick, spared, pop, thud, whoosh, machineGun, canOpen, clink
+        case ding, partyHorn, splat
+    }
+
+    /// Not a sound while you're on a call.
+    var hushed = false
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
@@ -21,7 +27,7 @@ final class Sounds {
     }
 
     func play(_ effect: Effect) {
-        guard Settings.shared.prefs.sounds else { return }
+        guard Settings.shared.prefs.sounds, !hushed else { return }
         // Quacks vary every time; everything else is made once and kept.
         let buffer = effect == .quack ? Synth.make(effect, format: format) : (cache[effect] ?? Synth.make(effect, format: format))
         if effect != .quack { cache[effect] = buffer }
@@ -31,7 +37,7 @@ final class Sounds {
     /// Says a line in the duck's voice (a sound per syllable or word), pitched to its personality.
     func babble(_ text: String, personality: Personality, voice: Voice? = nil) {
         let voice = voice ?? Settings.shared.prefs.voice
-        guard Settings.shared.prefs.voiceOn, voice != .off else { return }
+        guard Settings.shared.prefs.voiceOn, voice != .off, !hushed else { return }
         player.stop()  // a new line cuts off the old one
         schedule(Synth.speak(text, voice: voice, personality: personality, format: format))
     }
@@ -71,7 +77,39 @@ nonisolated enum Synth {
         case .machineGun: return buffer(machineGun(), format)
         case .canOpen: return buffer(canOpen(), format)
         case .clink: return buffer(tone(2350, length: 0.09, decay: 0.03, volume: 0.25) + tone(3400, length: 0.12, decay: 0.04, volume: 0.18), format)
+        case .ding: return buffer(ding(), format)
+        case .partyHorn: return buffer(partyHorn(), format)
+        case .splat: return buffer(splat(), format)
         }
+    }
+
+    /// A kitchen timer's bell: two bright rings with their overtones.
+    static func ding() -> [Float] {
+        let ring = zip(tone(1320, length: 0.7, decay: 0.25, volume: 0.3), tone(3170, length: 0.7, decay: 0.08, volume: 0.1)).map { $0 + $1 }
+        return ring + Array(ring.prefix(Int(rate * 0.12))).map { _ in 0 } + ring
+    }
+
+    /// A paper party horn: a buzzy reed that wobbles up as it unrolls.
+    static func partyHorn() -> [Float] {
+        var phase: Float = 0
+        let count = Int(rate * 0.6)
+        let raw = (0..<count).map { i -> Float in
+            let t = Float(Double(i) / rate)
+            let pitch: Float = 330 + 70 * min(1, t / 0.12) + 8 * sin(2 * .pi * 7 * t)
+            phase += pitch / Float(rate)
+            let saw = 2 * (phase - floor(phase)) - 1
+            return saw * min(1, t / 0.02) * min(1, (0.6 - t) / 0.08) * 0.35
+        }
+        return bandpass(raw, center: 1100, q: 0.9)
+    }
+
+    /// A wet little plop.
+    static func splat() -> [Float] {
+        let plop = sweep(from: 420, to: 90, length: 0.12, volume: 0.55)
+        let squelch = bandpass((0..<Int(rate * 0.12)).map { i in
+            Float.random(in: -1...1) * exp(-Float(Double(i) / rate) / 0.03) * 0.5
+        }, center: 600, q: 1.2)
+        return zip(plop, squelch).map { $0 + $1 }
     }
 
     /// A burst of fire: the start of the pistol shot again and again, each one a little different, then the echo.

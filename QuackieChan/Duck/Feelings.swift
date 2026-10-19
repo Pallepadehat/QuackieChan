@@ -41,6 +41,8 @@ final class Feelings {
         case praised, insulted, chatted, helped
         case windowYanked
         case drank, fed, caffeinated
+        /// You skipped the stretches it did for you.
+        case snubbed
     }
 
     var mood: Mood {
@@ -78,6 +80,7 @@ final class Feelings {
         case .helped: joy += 0.06; love += 0.03
         case .windowYanked: anger += 0.1
         case .drank: joy += 0.08; energy -= 0.06; anger -= 0.05
+        case .snubbed: anger += 0.2; love -= 0.05
         case .fed: love += 0.1; joy += 0.1; boredom = 0
         case .caffeinated: energy = 1; joy += 0.05; boredom = 0
         }
