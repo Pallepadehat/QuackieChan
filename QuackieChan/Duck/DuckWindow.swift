@@ -109,6 +109,8 @@ final class DuckWindow {
     private var visitor: Visitor?
     private var lastVisit = Date()
     private var onACall = false
+    /// Watching for clicks outside the talk box while it's open, in other apps and in our own windows.
+    private var clicksElsewhere: [Any] = []
 
     /// On every desktop, or just the one it was started on.
     static var behavior: NSWindow.CollectionBehavior {
@@ -213,6 +215,35 @@ final class DuckWindow {
         talk.open(listening: listening)
         bubblePanel.ignoresMouseEvents = false
         bubblePanel.makeKeyAndOrderFront(nil)
+        closeTalkOnClicksElsewhere()
+    }
+
+    /// A click anywhere but the talk box (or the duck) puts it away, like a popover.
+    private func closeTalkOnClicksElsewhere() {
+        guard clicksElsewhere.isEmpty else { return }
+        let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        // Clicks in other apps and on the desktop.
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: clicks, handler: { [weak self] _ in
+            MainActor.assumeIsolated { self?.talk.close() }
+        }) {
+            clicksElsewhere.append(monitor)
+        }
+        // Clicks in Quackie Chan's own windows, like Settings.
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: clicks, handler: { [weak self] event in
+            let window = event.windowNumber
+            MainActor.assumeIsolated {
+                guard let self, window != self.bubblePanel.windowNumber, window != self.panel.windowNumber else { return }
+                self.talk.close()
+            }
+            return event
+        }) {
+            clicksElsewhere.append(monitor)
+        }
+    }
+
+    private func stopWatchingClicksElsewhere() {
+        clicksElsewhere.forEach(NSEvent.removeMonitor)
+        clicksElsewhere.removeAll()
     }
 
     // MARK: The loop
@@ -235,7 +266,10 @@ final class DuckWindow {
         let mouse = NSEvent.mouseLocation
         duck.mouse = CGPoint(x: mouse.x - feet.x, y: mouse.y - (feet.y + 40 * pixel))
         if shove != nil { blowCursorAway() }
-        if every(0.1, "clicks") { updatePassThrough(mouse) }
+        if every(0.1, "clicks") {
+            updatePassThrough(mouse)
+            if !talk.isOpen, !clicksElsewhere.isEmpty { stopWatchingClicksElsewhere() }
+        }
         if every(0.5, "notice") { noticeTyping(); noticeAway(); noticeMouse(mouse) }
         if every(1, "feel") { feelings.drift(by: 1); resizeIfNeeded(); drinkIfThirsty(); tickTomato() }
         if every(2, "call") { noticeCall() }
