@@ -235,6 +235,40 @@ struct AppIconMaker {
             nap.append(Frame(pose: Pose(eyes: .blink, headY: 1, bodyY: 3 + (f / 10), legs: .tucked)))
         }
         try gif(nap, skin: DuckSkin.with(id: "merlin"), bubble: "zzz…", to: folder.appendingPathComponent("nap.gif"))
+
+        // Sat down when told, and staying sat.
+        var sit: [Frame] = []
+        for f in 0..<24 {
+            sit.append(Frame(pose: Pose(eyes: f == 9 || f == 10 ? .blink : .open, bodyY: 3 + (f / 12), legs: .tucked)))
+        }
+        try gif(sit, skin: quackie, bubble: "Sat. Staying. Very obedient.", to: folder.appendingPathComponent("sit.gif"))
+
+        // Nobody pets it, so it drinks: a swig, a sway, a hiccup.
+        var drunk: [Frame] = []
+        for f in 0..<36 {
+            let swig = f >= 10 && f < 22
+            var pose = Pose(eyes: swig ? .happy : .drunk, headY: swig ? -1 : 0, wing: .forward)
+            pose.beer = swig ? 2 : 1
+            pose.flushed = true
+            pose.monkHair = 1
+            let hic = f == 28 || f == 29
+            drunk.append(Frame(pose: pose, lift: hic ? 2 : 0, tilt: swig ? -6 : 5 * sin(Double(f) / 36 * 2 * .pi)))
+        }
+        try gif(drunk, skin: quackie, bubble: "You never pet me anymore. *hic*", to: folder.appendingPathComponent("drunk.gif"))
+
+        // Completely wasted, and you tried to pet it.
+        var wasted: [Frame] = []
+        for f in 0..<24 {
+            var pose = Pose(eyes: .angry, beakOpen: true, wing: .forward)
+            pose.machineGun = true
+            pose.flushed = true
+            pose.monkHair = 2
+            pose.muzzleFlash = f >= 6 && f % 2 == 0
+            if pose.muzzleFlash { pose.headX = -1 }
+            wasted.append(Frame(pose: pose, tilt: f >= 6 ? (f % 2 == 0 ? -4 : -2) : 0))
+        }
+        try gif(wasted, skin: DuckSkin.with(id: "don"), bubble: "NO PETS. NO PETS!", alarm: true,
+                to: folder.appendingPathComponent("wasted.gif"))
     }
 
     /// Writes frames as a looping GIF on a dark rounded tile, with a speech bubble above the duck.
