@@ -15,6 +15,9 @@ struct DuckActions {
     var nap: () -> Void = {}
     var give: (Treat) -> Void = { _ in }
     var cleanUp: () -> Void = {}
+    var focusTimer: () -> Void = {}
+    var inviteFriend: () -> Void = {}
+    var checkForUpdates: () -> Void = {}
     var openSettings: () -> Void = {}
     var togglePause: () -> Void = {}
     var hide: () -> Void = {}
@@ -42,23 +45,8 @@ struct DuckStage: View {
     }
 
     private var sprite: some View {
-        ZStack(alignment: .topLeading) {
-            DuckSprite(skin: settings.prefs.skin, pose: duck.pose)
-                .frame(width: spriteSize.width, height: spriteSize.height)
-                .scaleEffect(x: duck.facingLeft ? -1 : 1, y: 1)
-                .transaction { $0.animation = nil }  // frames swap, they don't fade
-            ForEach(duck.particles) { particle in
-                ParticleView(particle: particle)
-                    .position(x: (duck.facingLeft ? CGFloat(DuckArt.canvasWidth) - particle.at.x : particle.at.x) * pixel,
-                              y: particle.at.y * pixel)
-            }
-        }
-        .frame(width: spriteSize.width, height: spriteSize.height)
-        // The smooth bits: squash and stretch from the feet, lean from the feet, bounce.
-        .scaleEffect(x: 2 - duck.motion.squash, y: duck.motion.squash, anchor: .bottom)
-        .rotationEffect(.degrees(duck.facingLeft ? -duck.motion.tilt : duck.motion.tilt), anchor: .bottom)
-        .offset(y: -duck.motion.lift * pixel)
-        .contentShape(Rectangle())
+        DuckFigure(duck: duck, skin: settings.prefs.dressedSkin, pixel: pixel)
+            .contentShape(Rectangle())
         .modifier(Taps(doubleClickToTalk: settings.prefs.doubleClickToTalk, actions: actions))
         .onHover(perform: actions.hover)
         .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .global)
@@ -77,15 +65,17 @@ struct DuckStage: View {
             Button("Go Bananas", action: actions.bananas)
             Button("Fly Somewhere", action: actions.fly)
             Button("Take a Nap", action: actions.nap)
+            Divider()
+            Button(duck.onTomato ? "Stop the Focus Timer" : "🍅 Focus Timer", action: actions.focusTimer)
+            Button("Invite a Friend", action: actions.inviteFriend)
         }
         Menu("Treats") {
             Button("🍞 Bread") { actions.give(.bread) }
             Button("☕️ Coffee") { actions.give(.coffee) }
             Button("🍺 A Beer") { actions.give(.beer) }
-            if !Litter.shared.pile.cans.isEmpty {
-                Divider()
-                Button("Pick Up the Cans", action: actions.cleanUp)
-            }
+        }
+        if !Litter.shared.pile.cans.isEmpty || !Droppings.shared.isEmpty {
+            Button("Clean Up", action: actions.cleanUp)
         }
         if Booze.shared.stage > .sober {
             Text("🍺 \(Booze.shared.stage.name) (\(Booze.shared.beers) beer\(Booze.shared.beers == 1 ? "" : "s"))")
@@ -101,6 +91,7 @@ struct DuckStage: View {
         Button(settings.prefs.paused ? "Start Watching" : "Pause Watching", action: actions.togglePause)
         Button("Hide Duck", action: actions.hide)
         Button("Settings…", action: actions.openSettings)
+        Button("Check for Updates…", action: actions.checkForUpdates)
         Divider()
         Button("Quit Quackie Chan", action: actions.quit)
     }
@@ -118,6 +109,34 @@ private struct Taps: ViewModifier {
         } else {
             content.onTapGesture(perform: actions.poke)
         }
+    }
+}
+
+/// The duck itself and the little things floating off it, bouncing, leaning and squashing as it moves. Shared by
+/// your duck and any duck that visits.
+struct DuckFigure: View {
+    let duck: Duck
+    let skin: DuckSkin
+    let pixel: CGFloat
+
+    var body: some View {
+        let size = CGSize(width: CGFloat(DuckArt.canvasWidth) * pixel, height: CGFloat(DuckArt.canvasHeight) * pixel)
+        ZStack(alignment: .topLeading) {
+            DuckSprite(skin: skin, pose: duck.pose)
+                .frame(width: size.width, height: size.height)
+                .scaleEffect(x: duck.facingLeft ? -1 : 1, y: 1)
+                .transaction { $0.animation = nil }  // frames swap, they don't fade
+            ForEach(duck.particles) { particle in
+                ParticleView(particle: particle)
+                    .position(x: (duck.facingLeft ? CGFloat(DuckArt.canvasWidth) - particle.at.x : particle.at.x) * pixel,
+                              y: particle.at.y * pixel)
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        // The smooth bits: squash and stretch from the feet, lean from the feet, bounce.
+        .scaleEffect(x: 2 - duck.motion.squash, y: duck.motion.squash, anchor: .bottom)
+        .rotationEffect(.degrees(duck.facingLeft ? -duck.motion.tilt : duck.motion.tilt), anchor: .bottom)
+        .offset(y: -duck.motion.lift * pixel)
     }
 }
 
@@ -212,6 +231,7 @@ struct ParticleView: View {
         switch particle.kind {
         case .bang: 1.6
         case .smoke, .puff: 2
+        case .pow: 1.4
         default: 1.1
         }
     }
@@ -247,6 +267,19 @@ struct ParticleView: View {
                 .padding(.horizontal, 4)
                 .background(Color.red, in: RoundedRectangle(cornerRadius: 4))
         case .achoo: label("ACHOO!", size: 16, color: .white)
+        case .shh: label("shh!", size: 13, color: .white)
+        case .tick: label(pick % 2 == 0 ? "tick" : "tock", size: 10, color: .white)
+        case .pow:
+            label(["POW!", "BONK", "WHAM", "QUACK!", "SLAP"][pick % 5], size: 13, color: .white)
+                .padding(.horizontal, 4)
+                .background([Color.red, .orange, .purple][pick % 3], in: RoundedRectangle(cornerRadius: 4))
+        case .confetti:
+            Rectangle()
+                .fill([Color.pink, .yellow, .cyan, .green, .orange][pick % 5])
+                .frame(width: 4, height: 6)
+                .rotationEffect(.degrees(Double(pick % 90)))
+        case .stink: label("〰", size: 14, color: Color(red: 0.6, green: 0.75, blue: 0.3))
+        case .laugh: label(pick % 2 == 0 ? "HA HA!" : "HEH HEH", size: 14, color: .white)
         }
     }
 

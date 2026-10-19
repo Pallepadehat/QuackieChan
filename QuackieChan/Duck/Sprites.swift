@@ -60,12 +60,23 @@ nonisolated struct Pose: Hashable, Sendable {
     var mug = false
     /// A slice of bread at the beak.
     var bread = false
+    /// Dressed for a video call: a tie, and an ON AIR sign held up in front.
+    var tie = false
+    var onAir = false
+    /// Sitting on a tiny tomato kitchen timer.
+    var tomato = false
+    /// A birthday cake on the floor in front, candle lit.
+    var cake = false
+    /// A party horn: 0 none, 1 rolled up in the beak, 2 blown out.
+    var horn = 0
 }
 
 // MARK: - Skins
 
 nonisolated enum Hat: String, CaseIterable, Codable, Identifiable, Sendable {
     case none, headband, bandana, cap, flowers, wizard, mushroom, shades, topHat
+    /// Dressing up for the time of year (see Occasion).
+    case santa, pumpkin, party
 
     var id: String { rawValue }
 
@@ -80,6 +91,9 @@ nonisolated enum Hat: String, CaseIterable, Codable, Identifiable, Sendable {
         case .mushroom: "Mushroom"
         case .shades: "Sunglasses"
         case .topHat: "Top hat"
+        case .santa: "Santa hat"
+        case .pumpkin: "Pumpkin"
+        case .party: "Party hat"
         }
     }
 }
@@ -113,6 +127,8 @@ nonisolated enum Plumage: String, CaseIterable, Codable, Identifiable, Sendable 
             // Beer cans, the monk's hair, a red face, coffee and bread.
             "A": RGB(0xF2C14E), "a": RGB(0xC08A1E), "T": RGB(0x7A4B2A), "t": RGB(0x4E2E18), "V": RGB(0xE8505B),
             "C": RGB(0x5B3A1E), "M": RGB(0xF4EFE6), "Z": RGB(0xF0C27A), "z": RGB(0xA8692A),
+            // Pumpkins, stems and leaves.
+            "o": RGB(0xEE7A1E), "q": RGB(0xB4520F), "v": RGB(0x2F7A3A),
         ]
         switch self {
         case .classic: break
@@ -152,6 +168,9 @@ nonisolated struct DuckSkin: Identifiable, Hashable, Sendable {
     static let standard = all[0]
 
     static func with(id: String) -> DuckSkin { all.first { $0.id == id } ?? standard }
+
+    /// The same duck in another hat.
+    func wearing(_ hat: Hat) -> DuckSkin { DuckSkin(id: id, name: name, plumage: plumage, hat: hat) }
 }
 
 // MARK: - Painting
@@ -260,6 +279,7 @@ nonisolated enum DuckArt {
         let hx = 26 + pose.headX, hy = 24 + pose.headY + pose.bodyY
 
         paintLegs(&canvas, pose)
+        if pose.tomato { paintTomato(&canvas) }
 
         // Body, tail and neck, lit from the top left: a pale rim on top, shade underneath.
         let feathers: (Double, Double) -> Character? = { _, ny in ny > 0.5 ? "S" : (ny < -0.82 ? "L" : "W") }
@@ -299,6 +319,10 @@ nonisolated enum DuckArt {
         if pose.beer > 0 { paintBeer(&canvas, sipping: pose.beer > 1, hx: hx, hy: hy, bodyY: pose.bodyY) }
         if pose.mug { paintMug(&canvas, hx: hx, hy: hy) }
         if pose.bread { paintBread(&canvas, hx: hx, hy: hy) }
+        if pose.tie { paintTie(&canvas, bodyY: pose.bodyY) }
+        if pose.onAir { paintOnAir(&canvas, bodyY: pose.bodyY) }
+        if pose.cake { paintCake(&canvas) }
+        if pose.horn > 0 { paintHorn(&canvas, blown: pose.horn > 1, hx: hx, hy: hy) }
 
         canvas.outline()
 
@@ -461,6 +485,45 @@ nonisolated enum DuckArt {
             canvas.rect(hx - 5, hy - 21, hx - 4, hy - 9, "k", .hat)
             canvas.rect(hx - 6, hy - 10, hx + 4, hy - 9, "R", .hat)
             canvas.rect(hx - 10, hy - 7, hx + 8, hy - 6, "K", .hat)
+        case .santa:
+            // A red cone that flops over backwards, a white pompom on the end and a fluffy white brim.
+            for row in 0..<11 {
+                let half = max(1, 7 - row * 6 / 10)
+                let lean = row * row / 12
+                let y = hy - 7 - row
+                for x in (hx - half - lean)...(hx + half - lean) {
+                    canvas.set(x, y, x == hx + half - lean ? "r" : "R", .hat)
+                }
+            }
+            canvas.ellipse(Double(hx) - 11, Double(hy) - 16, 2.4, 2.4, .hat) { nx, ny in nx > 0.3 && ny > 0.3 ? "M" : "w" }
+            canvas.ellipse(Double(hx) - 0.5, Double(hy) - 6, 11, 2.3, .hat, only: onHead) { nx, ny in
+                ny > 0.3 || Int((nx + 1) * 6) % 3 == 0 ? "M" : "w"
+            }
+        case .pumpkin:
+            // A little jack-o'-lantern sitting on its head, grinning the way it faces.
+            canvas.ellipse(Double(hx) - 1, Double(hy) - 10, 9.5, 6.5, .hat) { nx, ny in
+                let rib = Int(((nx + 1) * 3.5).rounded(.down)) % 2 == 1
+                if ny > 0.55 || nx > 0.75 { return "q" }
+                return rib ? "q" : "o"
+            }
+            // Two triangle eyes and a toothy grin, lit from inside.
+            canvas.stamp(["..*", ".**", "***"], hx + 1, hy - 14, .hat)
+            canvas.stamp(["*..", "**.", "***"], hx + 5, hy - 14, .hat)
+            canvas.stamp(["*.*.**", "******", ".****."], hx + 1, hy - 10, .hat)
+            canvas.rect(hx - 2, hy - 19, hx - 1, hy - 17, "v", .hat)
+            canvas.set(hx, hy - 19, "v", .hat)
+            canvas.stamp(["GG.", ".GG"], hx, hy - 18, .hat)
+        case .party:
+            // A striped paper cone with a pompom, worn at a jaunty angle.
+            for row in 0..<13 {
+                let half = max(0, 5 - row * 5 / 12)
+                let y = hy - 6 - row
+                let lean = row / 4
+                for x in (hx - half + lean - 1)...(hx + half + lean - 1) {
+                    canvas.set(x, y, ["P", "P", "*", "*", "B", "B"][(x - lean + row + 60) % 6], .hat)
+                }
+            }
+            canvas.ellipse(Double(hx) + 2, Double(hy) - 20, 2, 2, .hat) { nx, ny in nx + ny > 0.6 ? "c" : "w" }
         }
         canvas.seam(.hat, onto: [.head])
     }
@@ -616,6 +679,71 @@ nonisolated enum DuckArt {
             canvas.set(x - 1, 52 - row, row > 1 && row < 12 ? "c" : "e", .laptop)
         }
         canvas.seam(.laptop, onto: [.body, .wing, .leg])
+    }
+
+    /// A tomato kitchen timer under the duck, which sits on it: a red tomato with a white dial round its middle.
+    private static func paintTomato(_ canvas: inout PixelCanvas) {
+        canvas.ellipse(21, 51.5, 10.5, 5, .laptop) { nx, ny in
+            if ny > 0.05 && ny < 0.3 { return Int((nx + 1) * 10) % 5 == 0 ? "r" : "M" }
+            if nx < -0.45 && ny < -0.3 { return "w" }
+            return ny > 0.5 || nx > 0.7 ? "r" : "R"
+        }
+        // The pointer on the dial.
+        canvas.rect(29, 51, 30, 52, "K", .laptop)
+        canvas.stamp(["G.G", "vGv"], 30, 46, .laptop)
+    }
+
+    /// A blue tie, knotted at the neck.
+    private static func paintTie(_ canvas: inout PixelCanvas, bodyY: Int) {
+        canvas.stamp(["bB", "Bb", ".BB", ".BBb", ".BBB", "..b"], 28, 31 + bodyY, .gun)
+        canvas.seam(.gun, onto: [.body, .head, .wing])
+    }
+
+    /// A red ON AIR sign held up in front of its chest.
+    private static func paintOnAir(_ canvas: inout PixelCanvas, bodyY: Int) {
+        let letters: [[String]] = [
+            [".w.", "w.w", "w.w", "w.w", ".w."],
+            ["w..w", "ww.w", "w.ww", "w..w", "w..w"],
+            ["."],
+            [".w.", "w.w", "www", "w.w", "w.w"],
+            ["w", "w", "w", "w", "w"],
+            ["ww.", "w.w", "ww.", "w.w", "w.w"],
+        ]
+        let x0 = 33, y0 = 30 + bodyY
+        canvas.rect(x0, y0, x0 + 23, y0 + 8, "R", .gun)
+        canvas.rect(x0, y0 + 8, x0 + 23, y0 + 8, "r", .gun)
+        var x = x0 + 2
+        for rows in letters {
+            canvas.stamp(rows, x, y0 + 2, .gun)
+            x += rows[0].count + 1
+        }
+        canvas.seam(.gun, onto: [.body, .wing, .head, .beak])
+    }
+
+    /// A birthday cake on the floor in front of the duck, one candle lit.
+    private static func paintCake(_ canvas: inout PixelCanvas) {
+        canvas.rect(36, 49, 52, 55, "Z", .laptop)
+        canvas.rect(36, 52, 52, 52, "P", .laptop)
+        canvas.rect(36, 55, 52, 55, "z", .laptop)
+        canvas.rect(36, 48, 52, 49, "M", .laptop)
+        for x in [37, 40, 45, 49, 51] { canvas.set(x, 50, "M", .laptop) }
+        canvas.rect(43, 43, 44, 47, "w", .laptop)
+        canvas.set(43, 44, "P", .laptop)
+        canvas.set(44, 46, "P", .laptop)
+        canvas.stamp([".x", "xX", "X."], 43, 40, .effect)
+        canvas.seam(.laptop, onto: [.body, .wing, .leg])
+    }
+
+    /// A party horn in the beak: rolled up, or blown out straight with a curl at the end.
+    private static func paintHorn(_ canvas: inout PixelCanvas, blown: Bool, hx: Int, hy: Int) {
+        let x = hx + 17, y = hy + 1
+        if blown {
+            for dx in 0..<11 { canvas.rect(x + dx, y, x + dx, y + 1, dx < 2 ? "*" : (dx / 2 % 2 == 0 ? "P" : "w"), .gun) }
+            canvas.stamp(["PP", ".P"], x + 11, y - 1, .gun)
+        } else {
+            canvas.stamp(["*PP.", "*.wP", "..PP"], x, y, .gun)
+        }
+        canvas.seam(.gun, onto: [.head, .beak])
     }
 
     // MARK: Images

@@ -25,6 +25,8 @@ final class Reactions {
     private var copyQuipped = Date.distantPast
     private var wasCharging: Bool?
     private var warnedBattery = false
+    /// Called on your birthday, after it's said happy birthday, for the cake.
+    var onBirthday: (() -> Void)?
 
     init(duck: Duck, talk: Talk) {
         self.duck = duck
@@ -107,7 +109,16 @@ final class Reactions {
         case 17..<23: (weekday == 1 || weekday == 7) ? .weekend : .evening
         default: .lateNight
         }
-        let key = "\(calendar.ordinality(of: .day, in: .era, for: now) ?? 0)-\(part.rawValue)"
+        let day = calendar.ordinality(of: .day, in: .era, for: now) ?? 0
+        // Birthdays, December and Halloween first, once a day.
+        if prefs.seasonal, let occasion = Occasion.on(now, birthday: prefs.birthday),
+           UserDefaults.standard.integer(forKey: "reactions.celebrated") != day,
+           speak(Lines.pick(occasion.moment, prefs.personality, fill: ["user": prefs.userName])) {
+            UserDefaults.standard.set(day, forKey: "reactions.celebrated")
+            if occasion == .birthday { onBirthday?() }
+            return true
+        }
+        let key = "\(day)-\(part.rawValue)"
         guard greeted != key else { return false }
         greeted = key
         return say(part, chance: 1)

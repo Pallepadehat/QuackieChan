@@ -60,6 +60,12 @@ nonisolated enum Moment: String, CaseIterable, Sendable {
     case sit, stand, hang, letGo, newDesk, summoned, moonwalk, sneeze
     case beer, gotTipsy, gotDrunk, gotWasted, drunkIdle, machineGun, noPets, petSobers, tooMuch
     case bread, coffee, soberedUp, cansGone, cansGoneDrunk
+    case birthday, christmas, halloween
+    case meetingOver, shh
+    case tomatoStart, tomatoBreak, stretchYes, stretchDone, stretchSkipped, tomatoBack, tomatoStopped
+    case poop, poopGone
+    case huntStart, huntHit, huntOver, huntMissed
+    case friendWon, friendLost, friendGone
 }
 
 /// The duck's built-in lines. Placeholders: {name} the duck, {user} you, {price}, {thing}, {site}, {minutes},
@@ -245,6 +251,37 @@ nonisolated enum Lines {
                      "Coffee. Okay. Who put this haircut on me?"],
         .cansGone: ["Ooh, tidy.", "Thanks! It was getting messy down there.", "Clean desk, clean mind."],
         .cansGoneDrunk: ["Hey! I was going to recycle those. Later.", "My cans! My precious cans!", "You can't take my cans."],
+        .birthday: ["HAPPY BIRTHDAY, {user}! 🎂 I baked. Don't ask how. I don't have hands.",
+                    "It's your birthday! I got you a cake and zero judgement. For today.",
+                    "Happy birthday! Make a wish. Unless it's a monkey chair."],
+        .christmas: ["Ho ho ho. I'm Santa now. You've been… mostly okay.", "It's December. I've been watching. I know if you've been bad.",
+                     "Merry Quackmas! Bread is a valid gift."],
+        .halloween: ["Boo. I'm a pumpkin now. Very scary.", "Spooky season! Your tabs are the scariest thing here.",
+                     "Trick or treat. I'll take bread."],
+        .meetingOver: ["Meeting over? Could've been an email.", "Phew. I held that sign for SO long.", "You were great on that call. I was greater.",
+                       "Off air. Now, where were we? Judging you."],
+        .shh: ["*whispers* you're on a call.", "Shh!", "*holds up sign harder*"],
+        .tomatoStart: ["Focus mode. {minutes} minutes. I'm sitting on the timer, so no cheating.",
+                       "{minutes} minutes of work. I'll guard the tomato.", "Tomato's ticking. Go. Do the thing."],
+        .tomatoBreak: ["DING! Break! Stand up and stretch with me.", "Time's up! Stretch break. Copy me.", "Break time! Arms up. Like me. Wings up."],
+        .stretchYes: ["Yes! Reach! Lean! Squat! Feel the burn!", "Good human. Copy my moves.", "Look at us. Fitness influencers."],
+        .stretchDone: ["Beautiful. Your spine says thank you.", "Look at you, all stretched. I'm so proud.", "Great stretch. Same time next tomato."],
+        .stretchSkipped: ["I SAW you typing. I'm stretching alone. Like a fool.", "Fine. Skip it. I'll stretch for both of us. Hmph.",
+                          "You skipped stretches. I'm not talking to you."],
+        .tomatoBack: ["Break's over. Another tomato?", "Rested? Ready for another round?"],
+        .tomatoStopped: ["Timer off. I'm getting off the tomato.", "Tomato retired. Good work today."],
+        .poop: ["Oops. That's for the doomscrolling.", "I left you a little review of {site}.", "{minutes} minutes on {site}. Here's what I think of it.",
+                "That one's on you. Well, on your window."],
+        .poopGone: ["You cleaned it. Don't make me do it again.", "Spotless. For now.", "Thank you. That was a cry for help."],
+        .huntStart: ["HUMAN HUNT. 20 seconds. Run, little cursor.", "You found the code. Now I hunt YOU. Twenty seconds.",
+                     "Up up down down? Big mistake. Run."],
+        .huntHit: ["Got you!", "Bullseye!", "HA!", "Too slow!", "Quack quack, you're dead."],
+        .huntOver: ["{hits} hits. Duck Hunt was always about the duck.", "I got you {hits} times. The dog never laughed this hard.",
+                    "{hits} hits in 20 seconds. Practise your dodging."],
+        .huntMissed: ["Not one hit. You're fast. I'm going back to bread.", "Zero hits?! My scope is broken. That's the only explanation."],
+        .friendWon: ["And STAY out!", "That's MY human's screen.", "Undefeated. Bread me."],
+        .friendLost: ["Ow. Okay. They hit harder than they look.", "I let them win. It was charity.", "I can see stars. And a goose."],
+        .friendGone: ["Ugh. My friends, everyone.", "Don't invite them again.", "They're nice when they're not here."],
     ]
 
     // MARK: - Lines each personality says (on top of the shared ones)
@@ -309,6 +346,29 @@ nonisolated enum Lines {
             .drunkIdle: ["I can see the code of the universe. It's mostly bread.", "Let's call your ex. No, MY ex. The goose."],
             .machineGun: ["THE CURSOR KNOWS WHAT IT DID.", "I'M NOT DRUNK, I'M ARMED."],
         ],
+    ]
+
+    // MARK: - Gossip
+
+    /// What your duck and a visiting duck say about you before it gets ugly. Each one ends with the line that starts
+    /// the fight. True lines are your duck's; false lines the visitor's. Placeholders: {user}, {name} your duck,
+    /// {friend} the visitor, {app} the front app.
+    static let gossip: [[(mine: Bool, line: String)]] = [
+        [(false, "So this is where you live now? On {user}'s screen?"), (true, "It's a lot of tabs. But it's home."),
+         (false, "I've seen what they do on {app}."), (true, "We don't talk about {app}."),
+         (false, "Your hat's stupid, by the way."), (true, "Say that again.")],
+        [(false, "Psst. Does {user} ever feed you?"), (true, "Sometimes bread. Mostly guilt."),
+         (false, "My human gives me croissants."), (true, "Liar."), (false, "Croissants, {name}. Every. Day.")],
+        [(false, "I heard {user} tried to buy a monkey chair."), (true, "Eight grand. I pulled the gun."),
+         (false, "Amateur. I'd have pecked the card in half."), (true, "Did you just call ME an amateur?")],
+        [(false, "How many tabs has {user} got open?"), (true, "Don't. Just don't."),
+         (false, "Mine closes them all at night. While they sleep."), (true, "Show-off."), (false, "Pond-dweller.")],
+        [(false, "Is it true {user} talks to you?"), (true, "Every day. I'm a great listener."),
+         (false, "You're a rubber duck with delusions."), (true, "Take. That. Back.")],
+        [(false, "{name}! Long time."), (true, "Not long enough, {friend}."),
+         (false, "Still living on a Mac? How's the Dock?"), (true, "Roomy. Unlike your skull.")],
+        [(false, "Your human's on {app}. Again."), (true, "They're working. Probably."),
+         (false, "Mine would never."), (true, "Yours drinks oat milk out of the carton."), (false, "HOW DO YOU KNOW THAT")],
     ]
 
     // MARK: - Opinions about apps

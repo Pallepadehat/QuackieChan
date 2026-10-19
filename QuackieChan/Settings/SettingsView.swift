@@ -327,6 +327,26 @@ private struct DuckPage: View {
                     .disabled(!settings.prefs.voiceOn)
             }
             Section {
+                Toggle(isOn: $settings.prefs.seasonal) {
+                    Text("Dress up for the occasion")
+                    Text("A Santa hat all December, a pumpkin in Halloween week, and a party hat, cake and horn on your birthday.")
+                }
+                BirthdayPicker(birthday: $settings.prefs.birthday)
+                    .disabled(!settings.prefs.seasonal)
+                Toggle(isOn: $settings.prefs.meetingMode) {
+                    Text("Meeting mode")
+                    Text("When your camera's on, or a meeting app is using the microphone, it puts on a tie, holds up an "
+                        + "ON AIR sign and doesn't make a sound until the call's over.")
+                }
+                Toggle(isOn: $settings.prefs.visitors) {
+                    Text("Friends drop by")
+                    Text("Now and then another duck flies in. They gossip about you, then it ends in a fight. "
+                        + "Right-click → Tricks → Invite a Friend to have one over now.")
+                }
+            } header: {
+                Text("Occasions 🎉")
+            }
+            Section {
                 Picker(selection: $settings.prefs.drinking) {
                     ForEach(Drinking.allCases) { Text($0.name).tag($0) }
                 } label: {
@@ -345,6 +365,63 @@ private struct DuckPage: View {
             StartAtLogin()
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Your birthday, as a month and a day.
+private struct BirthdayPicker: View {
+    @Binding var birthday: MonthDay?
+
+    var body: some View {
+        LabeledContent {
+            HStack(spacing: 6) {
+                Picker("Day", selection: day) {
+                    ForEach(1...31, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .labelsHidden()
+                .fixedSize()
+                .disabled(birthday == nil)
+                Picker("Month", selection: month) {
+                    Text("Not set").tag(0)
+                    ForEach(Array(DateFormatter().monthSymbols.enumerated()), id: \.offset) { Text($0.element).tag($0.offset + 1) }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+        } label: {
+            Text("Your birthday")
+            Text("Or just tell it: \"my birthday is 5 March\".")
+        }
+    }
+
+    private var month: Binding<Int> {
+        Binding { birthday?.month ?? 0 } set: { month in
+            birthday = month == 0 ? nil : MonthDay(month: month, day: min(birthday?.day ?? 1, 31))
+        }
+    }
+
+    private var day: Binding<Int> {
+        Binding { birthday?.day ?? 1 } set: { day in
+            if let month = birthday?.month { birthday = MonthDay(month: month, day: day) }
+        }
+    }
+}
+
+/// Whether it checks GitHub for new versions.
+private struct UpdatesSection: View {
+    @State private var automatic = Updates.shared.checksAutomatically
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $automatic) {
+                Text("Check for new versions")
+                Text("Once a day it downloads a small file from GitHub listing the latest release. Nothing about you is sent. "
+                    + "When there's a new duck, your duck tells you.")
+            }
+            .onChange(of: automatic) { _, on in Updates.shared.checksAutomatically = on }
+        } header: {
+            Text("Updates")
+        }
     }
 }
 
@@ -596,6 +673,15 @@ private struct GoalsPage: View {
                 Text("These work without any AI: the duck checks the app, the page's address and (if it can see) the text on screen.")
             }
             Section {
+                Stepper("Focus for \(settings.prefs.focusMinutes) minutes", value: $settings.prefs.focusMinutes, in: 5...90, step: 5)
+                Stepper("Then a \(settings.prefs.breakMinutes) minute break", value: $settings.prefs.breakMinutes, in: 1...30)
+            } header: {
+                Text("Focus timer 🍅")
+            } footer: {
+                Text("Right-click the duck → Tricks → Focus Timer, or say \"focus timer\". It sits on a tomato while you work, "
+                     + "then makes you stretch with it. Skip the stretches and it sulks. Every fourth break is three times longer.")
+            }
+            Section {
                 WishList(wishes: $settings.prefs.wishes)
                 HStack {
                     TextField("Tell it something", text: $wish, prompt: Text("I'm learning Spanish, so no Netflix in English"))
@@ -632,6 +718,7 @@ private struct GoalsPage: View {
                     value: $settings.prefs.spendLimit, in: 10...100_000, step: settings.prefs.spendLimit < 100 ? 10 : 50)
         case .stopDoomscrolling:
             Stepper("Warn after \(settings.prefs.doomscrollMinutes) minutes", value: $settings.prefs.doomscrollMinutes, in: 1...120)
+            Toggle("Leave a little poop on the window when I do", isOn: $settings.prefs.poops)
         case .sleep:
             Stepper("Bedtime \(settings.prefs.bedtimeHour):00", value: $settings.prefs.bedtimeHour, in: 18...23)
         default:
@@ -983,6 +1070,7 @@ private struct PrivacyPage: View {
                 Text("Browser tabs are only closed if you're still on the same page. Other apps get their close button pressed, "
                      + "so unsaved work still asks to be saved. The duck never quits apps on its own, buys, deletes or types.")
             }
+            UpdatesSection()
             Section {
                 ForEach(settings.prefs.ignoredApps, id: \.self) { id in
                     LabeledContent(appName(id)) {
@@ -1033,6 +1121,7 @@ private struct AboutPage: View {
                 Text("·").foregroundStyle(.tertiary)
                 Link("Report a Bug", destination: URL(string: "https://github.com/Pallepadehat/QuackieChan/issues/new/choose")!)
             }
+            Button("Check for Updates…") { Updates.shared.checkNow() }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -22,6 +22,20 @@ final class Duck {
         case drinking, sipping, eating
         /// Far too drunk, spraying the cursor with a machine gun.
         case shooting
+        /// On a video call with you: tie on, ON AIR sign up, not a peep.
+        case meeting
+        /// Sitting on the tomato timer while you focus.
+        case tomato
+        /// Break time: reaching, leaning and squatting, and you're supposed to join in.
+        case stretching
+        /// Brawling with a visiting duck in a cloud of feathers.
+        case fighting
+        /// Leaving a little something on your window.
+        case pooping
+        /// Your birthday: cake, party horn, confetti.
+        case partying
+        /// The Konami code: the gun follows your cursor.
+        case hunting
     }
 
     struct Bubble: Equatable, Identifiable {
@@ -45,6 +59,7 @@ final class Duck {
         enum Kind: Equatable {
             case zzz, heart, anger, sweat, exclaim, question, tap, fire, smoke, bang, sparkle, note, impact, puff
             case hic, beer, casing, ratatat, crumb, achoo, coffee
+            case shh, tick, pow, confetti, stink, laugh
         }
         let id = UUID()
         let kind: Kind
@@ -86,6 +101,10 @@ final class Duck {
     @ObservationIgnored var hanging = false
     /// Told to sit. Standing still then means sitting, until it's told something else.
     private(set) var staying = false
+    /// You're on a call. Standing still then means holding up the ON AIR sign, quietly.
+    private(set) var inMeeting = false
+    /// The focus timer is running. Standing still then means sitting on the tomato.
+    private(set) var onTomato = false
 
     /// Called when a line starts, so the duck's voice can babble along.
     @ObservationIgnored var onSay: ((String) -> Void)?
@@ -109,12 +128,13 @@ final class Duck {
     @ObservationIgnored private var sneezed = true
 
     var isBusy: Bool {
-        [.aiming, .dragged, .flying, .soaring, .pecking, .listening, .drinking, .sipping, .eating, .shooting].contains(activity)
+        [.aiming, .dragged, .flying, .soaring, .pecking, .listening, .drinking, .sipping, .eating, .shooting,
+         .meeting, .stretching, .fighting, .pooping, .partying, .hunting].contains(activity)
     }
     var isDancing: Bool { [.vibing, .dancing, .bananas].contains(activity) }
-    var isFree: Bool { [.idle, .walking, .petted, .sulking, .sitting, .hanging].contains(activity) }
+    var isFree: Bool { [.idle, .walking, .petted, .sulking, .sitting, .hanging, .tomato].contains(activity) }
     /// Standing about with nothing to do, wherever that is: on the floor, sat down, or hanging off a window.
-    var isResting: Bool { [.idle, .sitting, .hanging].contains(activity) }
+    var isResting: Bool { [.idle, .sitting, .hanging, .tomato, .meeting].contains(activity) }
 
     // MARK: Doing things
 
@@ -122,15 +142,39 @@ final class Duck {
     func stay(_ on: Bool) {
         guard on != staying else { return }
         staying = on
-        if on, activity == .idle { set(.sitting) }
-        if !on, activity == .sitting { set(.idle) }
+        rest()
     }
 
-    /// Going back to doing nothing means hanging on if it's holding a window's edge, and sitting if it was told to.
+    /// Goes on (or off) the call: tie and sign, or back to normal.
+    func meeting(_ on: Bool) {
+        guard on != inMeeting else { return }
+        inMeeting = on
+        rest()
+    }
+
+    /// Hops on (or off) the tomato timer.
+    func tomato(_ on: Bool) {
+        guard on != onTomato else { return }
+        onTomato = on
+        rest()
+    }
+
+    /// If it's standing about, it stands about the right way for now.
+    private func rest() {
+        if [.idle, .sitting, .tomato, .meeting].contains(activity) { set(.idle) }
+    }
+
+    /// What doing nothing looks like right now: hanging on if it's holding a window's edge, the sign up if you're
+    /// on a call, on the tomato while you focus, and sitting if it was told to.
+    private var resting: Activity {
+        hanging ? .hanging : inMeeting ? .meeting : onTomato ? .tomato : staying ? .sitting : .idle
+    }
+
+    /// Going back to doing nothing means whatever doing nothing looks like right now.
     func set(_ requested: Activity) {
-        let activity = requested == .idle ? (hanging ? .hanging : staying ? .sitting : .idle) : requested
+        let activity = requested == .idle ? resting : requested
         guard activity != self.activity else { return }
-        if [.aiming, .typing, .pecking].contains(activity) { facingLeft = false }
+        if [.aiming, .typing, .pecking, .meeting, .hunting].contains(activity) { facingLeft = false }
         if self.activity == .sleeping, activity != .sleeping { spawn(.exclaim) }
         self.activity = activity
         activitySince = clock
@@ -232,6 +276,9 @@ final class Duck {
         let drift = switch kind {
         case .casing: CGSize(width: .random(in: -30 ... -8), height: .random(in: 24...40))
         case .crumb: CGSize(width: .random(in: -10...10), height: 26)
+        case .confetti: CGSize(width: .random(in: -50...50), height: .random(in: -50 ... -10))
+        case .pow: CGSize(width: .random(in: -24...24), height: .random(in: -24...8))
+        case .stink: CGSize(width: .random(in: -6...6), height: -20)
         case .ratatat: CGSize(width: .random(in: 10...24), height: -24)
         case .smoke: CGSize(width: .random(in: -14...14), height: -36)
         default: CGSize(width: .random(in: -14...14), height: -30)
@@ -298,13 +345,33 @@ final class Duck {
             motion.tilt = t > 0.5 ? -6 : 0  // leaning back for a swig
         case .eating:
             motion.squash = 1 - 0.02 * CGFloat(abs(sin(t * 12)))
+        case .stretching:
+            // Lean left, lean right, then squats, two seconds each.
+            switch Int(t / 2) % 4 {
+            case 1: motion.tilt = -12 * sin(.pi * min(1, (t.truncatingRemainder(dividingBy: 2)) / 0.6))
+            case 2: motion.tilt = 12 * sin(.pi * min(1, (t.truncatingRemainder(dividingBy: 2)) / 0.6))
+            case 3: motion.squash = 1 - 0.08 * CGFloat(abs(sin(t * .pi)))
+            default: motion.squash = 1 + 0.05 * CGFloat(abs(sin(t * .pi / 2)))
+            }
+        case .fighting:
+            motion.tilt = 10 * sin(t * 31)
+            motion.lift = 2.5 * CGFloat(abs(sin(t * 17)))
+            motion.squash = 1 - 0.05 * CGFloat(abs(sin(t * 23)))
+        case .pooping:
+            motion.squash = t < 1.2 ? 0.94 - 0.02 * CGFloat(abs(sin(t * 30))) : 1
+        case .partying:
+            let jump = t / 0.5
+            motion.lift = 2.5 * CGFloat(abs(sin(.pi * jump)))
+            motion.tilt = 4 * sin(.pi * jump / 2)
+        case .hunting:
+            if clock < flashUntil + 0.12 { motion.tilt = -8 }
         default:
             break
         }
         // A drunk duck sways, more the more it's had, and staggers when it walks.
         if tipsy > 0 {
             switch activity {
-            case .idle, .sitting, .sulking, .petted:
+            case .idle, .sitting, .sulking, .petted, .meeting, .tomato:
                 motion.tilt += Double(tipsy) * 2.5 * sin(clock * 1.3)
             case .walking:
                 motion.tilt += Double(tipsy) * 3 * sin(clock * 2.1)
@@ -410,7 +477,7 @@ final class Duck {
                 lastParticle = clock
                 spawn(frantic ? .fire : .tap, at: CGPoint(x: 42 + .random(in: -4...4), y: 50))
             }
-        case .aiming:
+        case .aiming, .hunting:
             next.gun = true
             next.wing = .forward
             next.eyes = .angry
@@ -531,6 +598,60 @@ final class Duck {
                 spawn(.casing, at: CGPoint(x: 32, y: 36))
                 if Int.random(in: 0..<4) == 0 { spawn(.ratatat, at: DuckArt.barrel) }
             }
+        case .meeting:
+            // Very professional. Unless it's had a few, in which case it sweats about the hiccups.
+            next.eyes = clock < blinkUntil ? .blink : (tipsy > 0 ? .drunk : .open)
+            next.tie = true
+            next.onAir = true
+            next.wing = .forward
+            next.sweat = tipsy > 0
+            next.bodyY = 0
+        case .tomato:
+            next.tomato = true
+            next.legs = .tucked
+            next.bodyY = -3 + Int(clock / 1.6) % 2
+            next.eyes = clock < blinkUntil ? .blink : restingEyes
+            if clock - lastParticle > 2 { lastParticle = clock; spawn(.tick, at: CGPoint(x: 34, y: 48)) }
+        case .stretching:
+            // Reach for the sky, lean, lean, squat. Happy about it.
+            let move = Int(t / 2) % 4
+            next.eyes = move == 3 ? .angry : .happy
+            next.wing = move == 3 ? .forward : .up
+            next.headY = move == 0 ? -1 : 0
+            next.bodyY = move == 3 ? 3 : 0
+            next.legs = move == 3 ? .stepA : .stand
+            next.beakOpen = move == 3 && Int(t / 0.5) % 2 == 0
+            if move == 3, clock - lastParticle > 1 { lastParticle = clock; spawn(.sweat) }
+        case .fighting:
+            next.eyes = Int(t / 0.3) % 5 == 0 ? .shocked : .angry
+            next.wing = Int(t / 0.08) % 2 == 0 ? .up : .forward
+            next.legs = Int(t / 0.12) % 2 == 0 ? .stepA : .stepB
+            next.beakOpen = Int(t / 0.1) % 2 == 0
+            next.headX = Int(t / 0.1) % 2 == 0 ? 1 : -1
+            if clock - lastParticle > 0.14 {
+                lastParticle = clock
+                let at = CGPoint(x: .random(in: 14...50), y: .random(in: 16...46))
+                spawn([.pow, .impact, .puff, .anger, .pow].randomElement()!, at: at)
+            }
+        case .pooping:
+            // Strain, plop, relief.
+            let straining = t < 1.2
+            next.eyes = straining ? (Int(t / 0.3) % 2 == 0 ? .angry : .shocked) : .happy
+            next.sweat = straining
+            next.bodyY = straining ? 2 : 0
+            next.headY = straining ? 1 : 0
+            next.blush = !straining
+        case .partying:
+            next.cake = true
+            next.horn = Int(t / 0.5) % 3 == 0 ? 2 : 1
+            next.eyes = .happy
+            next.blush = true
+            next.wing = Int(t / 0.25) % 2 == 0 ? .up : .rest
+            next.legs = Int(t / 0.25) % 2 == 0 ? .stepA : .stepB
+            if clock - lastParticle > 0.12 {
+                lastParticle = clock
+                spawn(.confetti, at: CGPoint(x: .random(in: 10...50), y: .random(in: 6...20)))
+            }
         case .pecking:
             let down = Int(t / 0.16) % 2 == 0
             next.eyes = .angry
@@ -548,7 +669,7 @@ final class Duck {
             next.eyes = .blink
             next.headY = -1
         }
-        if clock < waveUntil, isFree, activity != .hanging {
+        if clock < waveUntil, isFree, activity != .hanging, activity != .tomato {
             next.wing = Int(clock / 0.2) % 2 == 0 ? .up : .forward
             next.eyes = .happy
         }
@@ -571,7 +692,7 @@ final class Duck {
             if tipsy >= 2, next.eyes == .open || next.eyes == .sleepy { next.eyes = .drunk }
             if clock > nextHiccup {
                 nextHiccup = clock + .random(in: 3...12) / Double(tipsy)
-                if isFree || activity == .sleeping {
+                if isFree || activity == .sleeping || activity == .meeting {
                     spawn(.hic)
                     if activity != .sleeping { hop() }
                 }
@@ -595,7 +716,8 @@ final class Duck {
         default:
             break
         }
-        if talking { next.beakOpen = true }
+        // Not a word on a call: the beak stays shut.
+        if talking, activity != .meeting { next.beakOpen = true }
         if pose != next { pose = next }
         let nextMotion = moving(t)
         if nextMotion != motion { motion = nextMotion }

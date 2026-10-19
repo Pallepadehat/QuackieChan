@@ -65,9 +65,29 @@ Quackie Chan stands at the bottom of your screen, above the Dock, and gets up to
 <td valign="top"><b>Drinks when you ignore it</b><br>Forget to pet it and it cracks open a beer. Then another. Red face, hiccups, slurring, a monk's haircut, cans all over the floor.</td>
 <td valign="top"><b>Gets a machine gun when it's wasted</b><br>Try to pet a completely wasted duck and it shoots your cursor across the screen. Bread, coffee and pets sober it up.</td>
 </tr>
+<tr>
+<td width="33%" align="center"><img src="docs/images/meeting.gif" alt="Holding up an ON AIR sign, in a tie" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/tomato.gif" alt="Sitting on a tomato timer" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/stretch.gif" alt="Stretching" width="220"></td>
+</tr>
+<tr>
+<td valign="top"><b>Behaves in meetings</b><br>Camera on, or a meeting app using the mic? It puts on a tie, holds up an <b>ON AIR</b> sign and doesn't make a sound until the call's over. If it's had a few, it hiccups anyway.</td>
+<td valign="top"><b>Times your focus</b><br>Right-click → <i>Tricks</i> → <i>Focus Timer</i>, or say "focus timer". It sits on a tiny tomato for 25 minutes while the time ticks down in the menu bar.</td>
+<td valign="top"><b>Makes you stretch</b><br>When the timer rings, it does stretches and you're meant to join in. Keep typing through them and it sulks.</td>
+</tr>
+<tr>
+<td width="33%" align="center"><img src="docs/images/party.gif" alt="Birthday cake and party horn" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/seasons.gif" alt="Santa hat and pumpkin" width="220"></td>
+<td width="33%" align="center"><img src="docs/images/fly.gif" alt="Flying" width="220"></td>
+</tr>
+<tr>
+<td valign="top"><b>Remembers your birthday</b><br>Say "my birthday is 5 March" and on the day it shows up in a party hat with a cake and a party horn.</td>
+<td valign="top"><b>Dresses up</b><br>A Santa hat all December, a pumpkin on its head in Halloween week.</td>
+<td valign="top"><b>Has friends. Sort of.</b><br>Now and then another duck flies in. They gossip about you in speech bubbles, then it ends in a fight. Doomscroll too long and it leaves a little poop on the window. And there's an old-school cheat code in there somewhere.</td>
+</tr>
 </table>
 
-**Right-click the duck** for tricks (dance, go bananas, fly, nap), treats (🍞 bread, ☕️ coffee, 🍺 beer) and to pick up its empty cans. When there's no room to stand on a window at the top of the screen, it hangs off the edge instead.
+**Right-click the duck** for tricks (dance, go bananas, fly, nap, the focus timer, invite a friend), treats (🍞 bread, ☕️ coffee, 🍺 beer) and to clean up its empty cans and whatever else it left behind. When there's no room to stand on a window at the top of the screen, it hangs off the edge instead.
 
 **Ten ducks, four personalities.** Pick your duck and whether it's 💅 sassy, 🪖 a drill sergeant, 🌷 wholesome or 🌀 unhinged.
 
@@ -87,7 +107,7 @@ Paste this into Terminal:
 curl -fsSL https://raw.githubusercontent.com/Pallepadehat/QuackieChan/main/install.sh | bash
 ```
 
-It downloads the latest release, puts Quackie Chan in your Applications folder (replacing an older copy), and opens it. Run it again any time to update.
+It downloads the latest release, puts Quackie Chan in your Applications folder (replacing an older copy), and opens it. After that the duck keeps itself up to date: when a new version is out, it tells you, and one click installs it.
 
 <details>
 <summary><b>Or use the .dmg</b></summary>
@@ -157,7 +177,7 @@ It can **see your screen**, so you can ask what it thinks of what you're doing. 
 
 Ask it to show off, any time: **"shoot me"**, **"go bananas"**, **"dance"**, **"fly"**, **"jump"**, **"come here"**, **"quack"**. Dare it and it might just do it on its own.
 
-Say **"sit"** (or "stay") and it sits until you say anything else; **"stand up"** gets it going again. Offer it **"bread"**, **"coffee"** or **"a beer"**.
+Say **"sit"** (or "stay") and it sits until you say anything else; **"stand up"** gets it going again. Offer it **"bread"**, **"coffee"** or **"a beer"**. Say **"focus timer"** (and **"stop the timer"**), **"invite a friend"**, or **"my birthday is 5 March"**.
 
 And with **Hands** switched on (Settings → Hands), it can **do things on your Mac**:
 
@@ -227,7 +247,8 @@ Settings → Personality → **Make it yours**. Tell it how to answer ("always i
 
 The duck sees your screen, so this matters.
 
-- ✅ **Nothing leaves your Mac.** The only network traffic is a model download, when you press *Get*.
+- ✅ **Nothing leaves your Mac.** The only network traffic is a model download, when you press *Get*, and a daily look at GitHub for a new version (a small file is downloaded; nothing about you is sent). Turn that off in Settings → Privacy.
+- ✅ **Meeting mode only asks whether** your camera or microphone is on, never what they see or hear.
 - ✅ **Screenshots are never saved.** It looks, reads on the device, and forgets.
 - ✅ **Your voice stays on your Mac.** Speech becomes text on the device; audio is never saved.
 - ✅ **Typing and copying are only counted**, never read.
@@ -245,7 +266,7 @@ New ducks, hats, moves, lines and goal rules are very welcome. See **[CONTRIBUTI
 - The duck is pixel art **painted in code** from a pose (`QuackieChan/Duck/Sprites.swift`), so a new move is a few lines, not a sprite sheet.
 - After changing the art, run `./scripts/make-icons.sh`: it redraws the app icon and every picture and GIF in this README.
 - The Xcode project is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen): run `xcodegen generate` after adding files.
-- Try things without waiting for them to happen: run with `QUACKIE_DEMO=gun`, `bananas`, `peck` or `talk`.
+- Try things without waiting for them to happen: run with `QUACKIE_DEMO=gun`, `bananas`, `peck`, `talk`, `meeting`, `tomato`, `stretch`, `friend`, `hunt`, `poop` or `party`.
 
 <details>
 <summary><b>How it fits together</b></summary>
@@ -315,7 +336,9 @@ For each release, bump `MARKETING_VERSION` in `project.yml`, commit, and run:
 
 Without an active Apple Developer Program membership, Apple won't notarize. Run `./scripts/release.sh --without-notarizing` instead: it still signs with the Developer ID certificate, so the signature stays the same once notarizing is back.
 
-It builds the app, packs it into `QuackieChan.dmg`, has Apple notarize it, staples the ticket on, tags the commit and publishes a GitHub release with the disk image. The install script downloads the newest one. To only make the disk image, run `./scripts/make-dmg.sh --notarize` (or without `--notarize` for a quick local copy).
+It builds the app, packs it into `QuackieChan.dmg`, has Apple notarize it, staples the ticket on, tags the commit and publishes a GitHub release with the disk image and `appcast.xml`. The install script downloads the newest disk image; the app itself finds new versions through the appcast ([Sparkle](https://sparkle-project.org)). To only make the disk image, run `./scripts/make-dmg.sh --notarize` (or without `--notarize` for a quick local copy).
+
+The appcast is signed with a Sparkle key kept in the maintainer's keychain; its public half is `SUPublicEDKey` in `project.yml`. **Back it up** (`build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys -x sparkle-key.txt`, then somewhere safe): without it, copies already out there can't update. Updates work without notarization too, as long as releases keep being signed with the same Developer ID.
 
 <br>
 

@@ -14,7 +14,8 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     STRING_CATALOG_GENERATE_SYMBOLS: YES
     MARKETING_VERSION: "0.2.0"
-    CURRENT_PROJECT_VERSION: "1"
+    # Sparkle compares build numbers, so they go up with the version.
+    CURRENT_PROJECT_VERSION: "$(MARKETING_VERSION)"
 packages:
   # Runs the vision model on the Mac's GPU.
   MLXSwift:
@@ -30,6 +31,10 @@ packages:
   SwiftTransformers:
     url: https://github.com/huggingface/swift-transformers
     from: 1.3.5
+  # Updates: finds new releases on GitHub and installs them.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.9.0
 
 schemes:
   QuackieChan:
@@ -69,6 +74,18 @@ targets:
         product: HuggingFace
       - package: SwiftTransformers
         product: Tokenizers
+      - package: Sparkle
+    info:
+      path: QuackieChan/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Where Sparkle looks for new versions: the appcast attached to the latest GitHub release.
+        SUFeedURL: https://github.com/Pallepadehat/QuackieChan/releases/latest/download/appcast.xml
+        # The public half of the key releases are signed with (the private half is in the maintainer's keychain).
+        SUPublicEDKey: mHeNSUPTLt12nikqiH5D0uBl7MAlnOd8ZaennsPfpLo=
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
     settings:
       base:
         PRODUCT_NAME: Quackie Chan

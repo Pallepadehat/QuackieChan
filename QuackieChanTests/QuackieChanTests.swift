@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 @testable import QuackieChan
 
@@ -61,6 +62,30 @@ struct ArtTests {
             #expect(Set(rows.map(\.count)).count == 1)
             #expect(rows.joined().allSatisfy { $0 == "." || palette[$0] != nil })
         }
+    }
+
+    @Test func occasionsAndPropsPaint() {
+        var props = [Pose(), Pose(wing: .forward), Pose(legs: .tucked), Pose(beakOpen: true)]
+        props[0].tie = true; props[0].onAir = true
+        props[1].cake = true; props[1].horn = 2
+        props[2].tomato = true; props[2].bodyY = -3
+        props[3].horn = 1
+        for hat in [Hat.santa, .pumpkin, .party] {
+            for plumage in Plumage.allCases {
+                let skin = DuckSkin(id: "test", name: "Test", plumage: plumage, hat: hat)
+                for pose in props {
+                    let pixels = DuckArt.paint(skin, pose)
+                    #expect(pixels.count == DuckArt.canvasHeight)
+                    #expect(pixels.joined().compactMap { $0 }.allSatisfy { skin.plumage.palette[$0] != nil })
+                }
+            }
+        }
+    }
+
+    @Test func poopPaintsInTheDucksColours() {
+        let palette = Plumage.classic.palette
+        #expect(Set(PoopArt.rows.map(\.count)).count == 1)
+        #expect(PoopArt.rows.joined().allSatisfy { $0 == "." || palette[$0] != nil })
     }
 
     @Test func monkHairKnocksTheHatOff() {
@@ -259,5 +284,69 @@ struct SeeingTests {
         #expect(instructions.contains("Always answer in Danish."))
         #expect(instructions.contains("Pickle"))
         #expect(!Minds.chatInstructions(Prefs(), mood: .content).contains("own instructions"))
+    }
+}
+
+struct OccasionTests {
+    private func date(_ month: Int, _ day: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: month, day: day, hour: 12))!
+    }
+
+    @Test func dressesUpForTheTimeOfYear() {
+        #expect(Occasion.on(date(12, 3), birthday: nil) == .christmas)
+        #expect(Occasion.on(date(10, 31), birthday: nil) == .halloween)
+        #expect(Occasion.on(date(10, 20), birthday: nil) == nil)
+        #expect(Occasion.on(date(6, 1), birthday: nil) == nil)
+    }
+
+    @Test func birthdaysWin() {
+        #expect(Occasion.on(date(12, 24), birthday: MonthDay(month: 12, day: 24)) == .birthday)
+        #expect(Occasion.on(date(3, 5), birthday: MonthDay(month: 3, day: 5)) == .birthday)
+    }
+
+    @Test(arguments: [
+        ("5 March", MonthDay(month: 3, day: 5)), ("march 5th", MonthDay(month: 3, day: 5)),
+        ("the 24th of December", MonthDay(month: 12, day: 24)), ("5. marts", MonthDay(month: 3, day: 5)),
+        ("on May 1", MonthDay(month: 5, day: 1)), ("17 okt", MonthDay(month: 10, day: 17)),
+    ])
+    func readsBirthdays(text: String, expected: MonthDay) {
+        #expect(MonthDay.parse(text) == expected)
+    }
+
+    @Test func needsAMonthName() {
+        #expect(MonthDay.parse("03/05") == nil)
+        #expect(MonthDay.parse("tomorrow") == nil)
+        #expect(MonthDay.parse("March 40") == nil)
+    }
+}
+
+struct PartyTrickTests {
+    @Test func understandsTheNewTricks() {
+        #expect(Paws.parse("start a pomodoro") == [.focusTimer])
+        #expect(Paws.parse("Focus timer please") == [.focusTimer])
+        #expect(Paws.parse("stop the timer") == [.stopFocusTimer])
+        #expect(Paws.parse("up up down down left right left right b a") == [.hunt])
+        #expect(Paws.parse("invite a friend") == [.inviteFriend])
+        for deed in [Deed.focusTimer, .stopFocusTimer, .hunt, .inviteFriend] { #expect(deed.isTrick) }
+    }
+
+    @Test func gossipEndsInTheRightPlaces() {
+        for script in Lines.gossip {
+            #expect(script.count >= 4)
+            // Both ducks get a word in.
+            #expect(script.contains { $0.mine } && script.contains { !$0.mine })
+            let known = ["{user}", "{name}", "{friend}", "{app}"]
+            for (_, line) in script {
+                let placeholders = line.matches(of: /\{[a-z]+\}/).map { String($0.output) }
+                #expect(placeholders.allSatisfy(known.contains))
+            }
+        }
+    }
+
+    @Test func everyNewMomentHasLines() {
+        let moments: [Moment] = [.birthday, .christmas, .halloween, .meetingOver, .tomatoStart, .tomatoBreak, .stretchYes,
+                                 .stretchDone, .stretchSkipped, .tomatoBack, .tomatoStopped, .poop, .poopGone, .huntStart,
+                                 .huntHit, .huntOver, .huntMissed, .friendWon, .friendLost, .friendGone]
+        for moment in moments { #expect(!(Lines.shared[moment] ?? []).isEmpty, "\(moment)") }
     }
 }

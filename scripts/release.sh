@@ -1,6 +1,11 @@
 #!/bin/zsh
 # Makes a release: builds a notarized QuackieChan.dmg and publishes it as a GitHub release, where install.sh finds
-# it. The version comes from MARKETING_VERSION in project.yml.
+# it, along with appcast.xml, where the app itself finds it (Sparkle). The version comes from MARKETING_VERSION in
+# project.yml.
+#
+# The appcast is signed with the Sparkle key in your keychain (made once with Sparkle's generate_keys; its public
+# half is SUPublicEDKey in project.yml). Keep a backup of it: `generate_keys -x sparkle-key.txt` exports it. Without
+# it, apps already out there can't update.
 #
 #   ./scripts/release.sh                       signed with Developer ID and notarized by Apple
 #   ./scripts/release.sh --without-notarizing  signed with Developer ID only, while the developer membership is off
@@ -25,8 +30,18 @@ else
   NOTES=(--generate-notes)
 fi
 
+# The appcast: one entry for this version, signed with our EdDSA key, pointing at this release's disk image.
+GENERATE_APPCAST=$(find build/DerivedData/SourcePackages/artifacts -name generate_appcast -type f -perm -u+x | head -1)
+[[ -n "$GENERATE_APPCAST" ]] || { echo "Couldn't find Sparkle's generate_appcast. Build once so Swift packages are fetched."; exit 1; }
+rm -rf build/appcast
+mkdir -p build/appcast
+cp build/QuackieChan.dmg build/appcast/
+"$GENERATE_APPCAST" --download-url-prefix "https://github.com/Pallepadehat/QuackieChan/releases/download/$TAG/" \
+  --link "https://github.com/Pallepadehat/QuackieChan/releases/tag/$TAG" --maximum-versions 1 build/appcast
+[[ -f build/appcast/appcast.xml ]] || { echo "No appcast was made."; exit 1; }
+
 git tag "$TAG"
 git push origin "$TAG"
-gh release create "$TAG" build/QuackieChan.dmg --title "Quackie Chan $VERSION" "${NOTES[@]}"
+gh release create "$TAG" build/QuackieChan.dmg build/appcast/appcast.xml --title "Quackie Chan $VERSION" "${NOTES[@]}"
 echo "Released $TAG. Anyone can now install it with:"
 echo "  curl -fsSL https://raw.githubusercontent.com/Pallepadehat/QuackieChan/main/install.sh | bash"

@@ -20,6 +20,19 @@ struct Prefs: Codable, Equatable {
     var drinking = Drinking.normal
     /// Once it's had far too many, trying to pet it gets your cursor shot across the screen.
     var machineGun = true
+    /// Santa hat in December, a pumpkin for Halloween, a party hat on your birthday.
+    var seasonal = true
+    /// Your birthday, for the cake.
+    var birthday: MonthDay?
+    /// On a call (camera on, or a meeting app using the mic), it puts on a tie, holds up an ON AIR sign and hushes.
+    var meetingMode = true
+    /// Now and then another duck drops by to gossip about you, and it ends in a fight.
+    var visitors = true
+    /// Doomscroll past your limit and it leaves a little something on the window.
+    var poops = true
+    /// The tomato timer: minutes of focus, then minutes of break.
+    var focusMinutes = 25
+    var breakMinutes = 5
 
     var goals: [Goal] = [.saveMoney]
     /// Things you told the duck in your own words, like "I'm learning Spanish". The AI brain reads them.
